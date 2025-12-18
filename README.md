@@ -2,7 +2,9 @@
 
 
 ![PyPI](https://img.shields.io/pypi/v/notebookllm?label=pypi%20package)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/notebookllm)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/notebookllm-mcp)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/notebookllm?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/notebookllm)
+
 
 A Python package to bridge the gap between Jupyter Notebooks and Large Language Models (LLMs). It reduces token usage,cost and makesit easy for llms to work with large notebooks by providing only the actual code omitting the cell metadata.
 
