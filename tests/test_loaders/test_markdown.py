@@ -50,6 +50,23 @@ class TestMarkdownLoader:
         assert len(doc.cells) == 2
         assert all(c.cell_type == CellType.CODE for c in doc.cells)
 
+    def test_load_parses_frontmatter(self):
+        """Markdown files with YAML frontmatter should extract metadata."""
+        loader = MarkdownLoader()
+        text = '---\ntitle: "My Doc"\nauthor: "Test"\n---\n\n# Hello\n\n```python\nx = 1\n```\n'
+        doc = loader.loads(text)
+        assert doc.metadata.get("title") == "My Doc"
+        assert doc.metadata.get("author") == "Test"
+
+    def test_load_frontmatter_preserves_cells(self):
+        """Frontmatter should be stripped from content but cells preserved."""
+        loader = MarkdownLoader()
+        text = '---\ntitle: Test\n---\n\n# Intro\n\n```python\nx = 1\n```\n'
+        doc = loader.loads(text)
+        assert len(doc.cells) == 2
+        assert doc.cells[0].source == "# Intro"
+        assert doc.cells[1].source == "x = 1"
+
 
 class TestMarkdownDumper:
     def test_dump_to_string(self):

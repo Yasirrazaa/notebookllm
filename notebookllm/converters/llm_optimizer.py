@@ -57,14 +57,19 @@ class LLMOptimizer:
         return "\n".join(lines)
 
     def _format_output(self, output: CellOutput) -> str:
+        # Extract text/plain from rich MIME bundles for cleaner LLM output
+        content = output.content
+        if isinstance(content, dict):
+            content = content.get("text/plain", str(content))
+
         if output.output_type == "stream":
             name = output.name or "stdout"
-            return f"# [{name}] {output.content}"
+            return f"# [{name}] {content}"
         elif output.output_type == "execute_result":
-            return f"# [output] {output.content}"
+            return f"# [output] {content}"
         elif output.output_type == "display_data":
-            return f"# [display] {output.content}"
+            return f"# [display] {content}"
         elif output.output_type == "error":
-            return f"# [error] {output.content}"
+            return f"# [error] {content}"
         else:
-            return f"# [{output.output_type}] {output.content}"
+            return f"# [{output.output_type}] {content}"

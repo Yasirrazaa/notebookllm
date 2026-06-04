@@ -68,3 +68,41 @@ class TestMarimoLoader:
         )
         doc = loader.loads(text)
         assert len(doc.cells) == 1
+
+    def test_load_detects_mo_md_cells(self):
+        """Cells containing mo.md() calls should be detected as MARKDOWN type."""
+        loader = MarimoLoader()
+        text = (
+            "import marimo as mo\n"
+            "app = marimo.App()\n"
+            "\n"
+            "@app.cell\n"
+            "def header():\n"
+            "    mo.md(\"# Hello\")\n"
+            "    return\n"
+            "\n"
+            "@app.cell\n"
+            "def compute():\n"
+            "    x = 1 + 2\n"
+            "    return x,\n"
+        )
+        doc = loader.loads(text)
+        assert len(doc.cells) == 2
+        assert doc.cells[0].cell_type == CellType.MARKDOWN
+        assert doc.cells[1].cell_type == CellType.CODE
+
+    def test_load_captures_generated_with(self):
+        """The __generated_with version should be captured in notebook metadata."""
+        loader = MarimoLoader()
+        text = (
+            "import marimo\n"
+            "__generated_with = \"0.5.0\"\n"
+            "app = marimo.App()\n"
+            "\n"
+            "@app.cell\n"
+            "def f():\n"
+            "    x = 1\n"
+            "    return x,\n"
+        )
+        doc = loader.loads(text)
+        assert doc.metadata.get("generated_with") == "0.5.0"

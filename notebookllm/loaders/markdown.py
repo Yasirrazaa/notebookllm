@@ -4,10 +4,13 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import yaml
+
 from notebookllm.loaders.base import BaseLoader, BaseDumper
 from notebookllm.models import Cell, CellType, NotebookDocument
 
 CODE_BLOCK_RE = re.compile(r"```(\w+)\s*\n(.*?)```", re.DOTALL)
+FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
 
 class MarkdownLoader(BaseLoader):
@@ -20,6 +23,17 @@ class MarkdownLoader(BaseLoader):
 
     def loads(self, content: str) -> NotebookDocument:
         cells = []
+        metadata = {}
+
+        # Parse YAML frontmatter (same as quarto loader)
+        fm_match = FRONTMATTER_RE.match(content)
+        if fm_match:
+            try:
+                metadata = yaml.safe_load(fm_match.group(1)) or {}
+            except yaml.YAMLError:
+                metadata = {}
+            content = content[fm_match.end():]
+
         last_end = 0
 
         for match in CODE_BLOCK_RE.finditer(content):
@@ -43,7 +57,7 @@ class MarkdownLoader(BaseLoader):
         if trailing:
             cells.append(Cell(cell_type=CellType.MARKDOWN, source=trailing))
 
-        return NotebookDocument(cells=cells, source_format="markdown")
+        return NotebookDocument(cells=cells, metadata=metadata, source_format="markdown")
 
 
 class MarkdownDumper(BaseDumper):

@@ -44,11 +44,29 @@ class QuartoLoader(BaseLoader):
 
             # The code chunk
             lang = match.group(1)
-            code = match.group(2).strip()
+            raw_code = match.group(2)
+
+            # Extract quarto cell options (#| key: value) from the top of the code block
+            cell_options = {}
+            code_lines = raw_code.split("\n")
+            cleaned_lines = []
+            for cline in code_lines:
+                opt_match = re.match(r"^\s*#\|\s+([\w-]+)\s*:\s*(.+)$", cline)
+                if opt_match:
+                    cell_options[opt_match.group(1)] = opt_match.group(2).strip()
+                else:
+                    cleaned_lines.append(cline)
+            code = "\n".join(cleaned_lines).strip()
+
+            cell_metadata = {}
+            if cell_options:
+                cell_metadata["quarto_options"] = cell_options
+            cell_metadata["language"] = lang
+
             if lang in ("python", "r", "julia"):
-                cells.append(Cell(cell_type=CellType.CODE, source=code))
+                cells.append(Cell(cell_type=CellType.CODE, source=code, metadata=cell_metadata))
             else:
-                cells.append(Cell(cell_type=CellType.RAW, source=code))
+                cells.append(Cell(cell_type=CellType.RAW, source=code, metadata=cell_metadata))
 
             last_end = match.end()
 

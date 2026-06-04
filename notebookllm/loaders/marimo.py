@@ -24,8 +24,18 @@ class MarimoLoader(BaseLoader):
         try:
             tree = ast.parse(content)
         except SyntaxError:
-            # If AST fails, return empty
             return NotebookDocument(cells=[], source_format="marimo")
+
+        # Extract __generated_with version from module-level assignment
+        generated_with = None
+        for node in ast.iter_child_nodes(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id == "__generated_with":
+                        if isinstance(node.value, ast.Constant):
+                            generated_with = node.value.value
+                        elif isinstance(node.value, ast.Str):  # Python < 3.8 compat
+                            generated_with = node.value.s
 
         for node in ast.iter_child_nodes(tree):
             if not isinstance(node, ast.FunctionDef):
@@ -33,10 +43,14 @@ class MarimoLoader(BaseLoader):
             if not self._has_cell_decorator(node):
                 continue
             # Extract cell body from AST
-            cell_source = self._extract_cell_body(content, node)
-            cells.append(Cell(cell_type=CellType.CODE, source=cell_source))
+            cell_source, cell_type = self._extract_cell(content, node)
+            cells.append(Cell(cell_type=cell_type, source=cell_source))
 
-        return NotebookDocument(cells=cells, source_format="marimo")
+        metadata = {}
+        if generated_with:
+            metadata["generated_with"] = generated_with
+
+        return NotebookDocument(cells=cells, metadata=metadata, source_format="marimo")
 
     def _has_cell_decorator(self, node: ast.FunctionDef) -> bool:
         """Check if function has @app.cell decorator."""
@@ -48,8 +62,18 @@ class MarimoLoader(BaseLoader):
                 return True
         return False
 
-    def _extract_cell_body(self, content: str, node: ast.FunctionDef) -> str:
-        """Extract the function body as source code, stripping the decorator and def line."""
+    def _is_mo_md_call(self, source: str) -> bool:
+        """Detect if the cell body is primarily a mo.md() call (marimo markdown).
+
+        Marimo stores markdown content as mo.md("...") calls inside code cells.
+        We detect this pattern to convert the cell to CellType.MARKDOWN.
+        """
+        stripped = source.strip()
+        # Match mo.md("...") with optional return prefix
+        return bool(re.match(r"^(?:return\s+)?mo\.md\(", stripped))
+
+    def _extract_cell(self, content: str, node: ast.FunctionDef) -> tuple[str, CellType]:
+        """Extract cell body and detect if it's markdown (mo.md() call)."""
         lines = content.splitlines(keepends=True)
         body_start = node.body[0].lineno - 1
         end_line = node.body[-1].end_lineno if hasattr(node, "end_lineno") and node.end_lineno else (body_start + len(node.body))
@@ -63,4 +87,7 @@ class MarimoLoader(BaseLoader):
         # Remove trailing return statement (marimo convention: return var1, var2,)
         source = re.sub(r"\nreturn\s+[^\n]*\s*$", "", source)
 
-        return source
+        # Detect if this is a mo.md() markdown cell
+        cell_type = CellType.MARKDOWN if self._is_mo_md_call(source) else CellType.CODE
+
+        return source, cell_type

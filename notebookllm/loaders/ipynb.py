@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from pathlib import Path
 
 import nbformat
@@ -136,6 +137,8 @@ class IpynbLoader(BaseLoader):
 
         metadata = cell_dict.get("metadata", {}) or {}
         cell_id = cell_dict.get("id", None)
+        if cell_id is None:
+            cell_id = str(uuid.uuid4())
 
         return Cell(
             cell_type=CellType(cell_dict.get("cell_type", "code")),
@@ -160,9 +163,19 @@ class IpynbLoader(BaseLoader):
             return CellOutput(output_type=output_type, content=text, name=out.get("name"))
         elif output_type in ("execute_result", "display_data"):
             data = out.get("data", {})
-            content = data.get("text/plain", str(data))
-            if isinstance(content, list):
-                content = "".join(content)
+            # Store the entire MIME bundle (text/plain, text/html, image/png, etc.)
+            # as a dict so rich outputs are preserved for FULL mode
+            if isinstance(data, dict):
+                mime_bundle = {}
+                for mime_key, mime_value in data.items():
+                    if isinstance(mime_value, list):
+                        mime_value = "".join(mime_value)
+                    mime_bundle[mime_key] = mime_value
+                content = mime_bundle
+            else:
+                content = data.get("text/plain", str(data))
+                if isinstance(content, list):
+                    content = "".join(content)
             return CellOutput(output_type=output_type, content=content)
         elif output_type == "error":
             traceback = out.get("traceback", [])
@@ -185,6 +198,8 @@ class IpynbLoader(BaseLoader):
 
             metadata = dict(nb_cell.metadata) if nb_cell.metadata else {}
             cell_id = getattr(nb_cell, "id", None)
+            if cell_id is None:
+                cell_id = str(uuid.uuid4())
 
             cells.append(Cell(
                 cell_type=CellType(nb_cell.cell_type),

@@ -10,6 +10,29 @@ from notebookllm.models import Cell, CellType, NotebookDocument
 CELL_MARKER = re.compile(r"^#\s*%%\s*(?:\[(\w+)\])?\s*$")
 
 
+def _is_inside_string(lines: list[str]) -> bool:
+    """Check if the current code is inside an unclosed triple-quoted string.
+
+    Tracks triple-double-quote and triple-single-quote boundaries to avoid
+    false-positive cell marker detection when '# %%' appears inside a string.
+    Returns True if we're inside an unclosed triple-quoted string.
+    """
+    depth_dq = 0  # triple-double-quote depth
+    depth_sq = 0  # triple-single-quote depth
+    for line in lines:
+        i = 0
+        while i < len(line):
+            if line[i:i+3] == '"""':
+                depth_dq ^= 1  # toggle
+                i += 3
+            elif line[i:i+3] == "'''":
+                depth_sq ^= 1
+                i += 3
+            else:
+                i += 1
+    return depth_dq == 1 or depth_sq == 1
+
+
 class PercentLoader(BaseLoader):
     """Load percent format .py files."""
 
@@ -22,9 +45,16 @@ class PercentLoader(BaseLoader):
         cells: list[Cell] = []
         current_type = CellType.CODE
         current_lines: list[str] = []
+        all_lines: list[str] = []
         has_markers = False
 
         for line in content.splitlines(keepends=True):
+            # Skip markers that appear inside triple-quoted strings
+            if _is_inside_string(all_lines + [line.split("#")[0]]):
+                current_lines.append(line)
+                all_lines.append(line)
+                continue
+
             match = CELL_MARKER.match(line.rstrip())
             if match:
                 has_markers = True
@@ -39,6 +69,7 @@ class PercentLoader(BaseLoader):
                 current_lines = []
             else:
                 current_lines.append(line)
+            all_lines.append(line)
 
         if current_lines:
             source = "".join(current_lines).rstrip("\n")
@@ -59,7 +90,7 @@ class PercentDumper(BaseDumper):
             marker = f"# %% [{cell.cell_type.value}]"
             parts.append(f"{marker}\n{cell.source}")
 
-        result = "\n\n".join(parts)
+        result = "\n\n".join(parts).rstrip() + "\n"
         if filepath:
             filepath.write_text(result, encoding="utf-8")
         return result

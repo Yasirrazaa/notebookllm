@@ -452,3 +452,70 @@ class TestIpynbDumper:
         for c1, c2 in zip(doc.cells, doc2.cells):
             assert c1.cell_type == c2.cell_type
             assert c1.source == c2.source
+
+    def test_load_generates_cell_id_when_missing(self, tmp_path):
+        """Cells without 'id' should get a UUID generated (nbformat may generate a short
+        ID for the nbformat path, but the streaming path always generates a UUID)."""
+        loader = IpynbLoader()
+        f = tmp_path / "no_id.ipynb"
+        f.write_text(json.dumps({
+            "cells": [{
+                "cell_type": "code",
+                "source": ["x = 1"],
+                "metadata": {},
+                "outputs": [],
+            }],
+            "metadata": {},
+            "nbformat": 4,
+            "nbformat_minor": 5,
+        }))
+        doc = loader.load(f)
+        assert len(doc.cells) == 1
+        assert doc.cells[0].cell_id is not None
+        # nbformat may auto-generate a short ID, so just check it's not None
+
+    def test_streaming_generates_cell_id_when_missing(self, tmp_path):
+        """Streaming path should also generate UUIDs for missing cell IDs."""
+        loader = IpynbLoader()
+        loader.streaming_threshold = 0
+        f = tmp_path / "no_id_stream.ipynb"
+        f.write_text(json.dumps({
+            "cells": [{"cell_type": "code", "source": ["x = 1"], "metadata": {}, "outputs": []}],
+            "metadata": {},
+            "nbformat": 4,
+            "nbformat_minor": 5,
+        }))
+        doc = loader.load(f)
+        assert doc.cells[0].cell_id is not None
+        assert len(doc.cells[0].cell_id) == 36
+
+    def test_load_preserves_rich_mime_outputs(self, tmp_path):
+        """Rich MIME bundles (text/html, image/png) should be preserved as dict."""
+        loader = IpynbLoader()
+        f = tmp_path / "rich_output.ipynb"
+        f.write_text(json.dumps({
+            "cells": [{
+                "cell_type": "code",
+                "source": ["display({'text/html': '<b>42</b>', 'text/plain': '42'})"],
+                "metadata": {},
+                "outputs": [{
+                    "output_type": "execute_result",
+                    "data": {
+                        "text/plain": "42",
+                        "text/html": "<b>42</b>",
+                        "image/png": "iVBOR...",
+                    },
+                }],
+            }],
+            "metadata": {},
+            "nbformat": 4,
+            "nbformat_minor": 5,
+        }))
+        doc = loader.load(f)
+        assert len(doc.cells[0].outputs) == 1
+        output = doc.cells[0].outputs[0]
+        assert output.output_type == "execute_result"
+        assert isinstance(output.content, dict)
+        assert output.content["text/plain"] == "42"
+        assert output.content["text/html"] == "<b>42</b>"
+        assert output.content["image/png"] == "iVBOR..."

@@ -65,6 +65,43 @@ class TestPercentLoader:
         assert "    x = 1" in doc.cells[0].source
         assert "    print(x)" in doc.cells[0].source
 
+    def test_load_skips_markers_inside_triple_quotes(self):
+        """Marker inside triple-quoted string should not trigger cell boundary."""
+        loader = PercentLoader()
+        text = '# %% [code]\nx = """\n# %% [markdown]\nThis is not a real marker\n"""\ny = 1\n'
+        doc = loader.loads(text)
+        # Should be a single code cell, not split by the fake marker
+        assert len(doc.cells) == 1
+        assert doc.cells[0].cell_type == CellType.CODE
+        assert 'x = """' in doc.cells[0].source
+        assert 'y = 1' in doc.cells[0].source
+
+    def test_load_skips_markers_inside_triple_single_quotes(self):
+        """Marker inside triple-single-quoted string should not trigger cell boundary."""
+        loader = PercentLoader()
+        text = "# %% [code]\nx = '''\n# %% [markdown]\nStill code\n'''\ny = 2\n"
+        doc = loader.loads(text)
+        assert len(doc.cells) == 1
+        assert doc.cells[0].cell_type == CellType.CODE
+
+    def test_load_skips_markers_in_single_line_strings(self):
+        """Marker inside a single-line string that happens to start with # should not trigger."""
+        loader = PercentLoader()
+        text = "# %% [code]\nprint('# %% this is not a marker')\nz = 3\n"
+        doc = loader.loads(text)
+        assert len(doc.cells) == 1
+        assert 'print' in doc.cells[0].source
+        assert 'z = 3' in doc.cells[0].source
+
+    def test_load_multiple_code_cells_with_triple_quotes(self):
+        """Real markers should still work after a triple-quoted string closes."""
+        loader = PercentLoader()
+        text = '# %% [code]\nx = """\ncontent\n"""\n\n# %% [markdown]\n# Real title\n'
+        doc = loader.loads(text)
+        assert len(doc.cells) == 2
+        assert doc.cells[0].cell_type == CellType.CODE
+        assert doc.cells[1].cell_type == CellType.MARKDOWN
+
 
 class TestPercentDumper:
     def test_dump_to_string(self):
