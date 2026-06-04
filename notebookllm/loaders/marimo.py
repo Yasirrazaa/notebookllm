@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import re
 import textwrap
 from pathlib import Path
 
@@ -38,10 +39,11 @@ class MarimoLoader(BaseLoader):
         return NotebookDocument(cells=cells, source_format="marimo")
 
     def _has_cell_decorator(self, node: ast.FunctionDef) -> bool:
-        """Check if function has @app.cell or @app.function decorator."""
+        """Check if function has @app.cell decorator."""
         for dec in node.decorator_list:
-            if isinstance(dec, ast.Attribute) and dec.attr == "cell":
-                return True
+            if isinstance(dec, ast.Attribute):
+                if dec.attr == "cell" and isinstance(dec.value, ast.Name) and dec.value.id == "app":
+                    return True
             if isinstance(dec, ast.Name) and dec.id == "cell":
                 return True
         return False
@@ -49,18 +51,16 @@ class MarimoLoader(BaseLoader):
     def _extract_cell_body(self, content: str, node: ast.FunctionDef) -> str:
         """Extract the function body as source code, stripping the decorator and def line."""
         lines = content.splitlines(keepends=True)
-        # Find the start of the function body (first line after def:)
         body_start = node.body[0].lineno - 1
-        body_end = node.end_lineno if hasattr(node, "end_lineno") and node.end_lineno else body_start + 1
+        end_line = node.body[-1].end_lineno if hasattr(node, "end_lineno") and node.end_lineno else (body_start + len(node.body))
 
-        body_lines = lines[body_start:body_end]
+        body_lines = lines[body_start:end_line]
         source = "".join(body_lines)
 
         # Strip common indentation (the body is indented under def)
         source = textwrap.dedent(source)
 
-        # Remove trailing return statement if it's just returning variables
-        # (marimo convention: return var1, var2,)
-        source = source.rstrip()
+        # Remove trailing return statement (marimo convention: return var1, var2,)
+        source = re.sub(r"\nreturn\s+[^\n]*\s*$", "", source)
 
         return source
