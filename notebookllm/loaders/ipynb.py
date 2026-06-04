@@ -1,6 +1,7 @@
 """ipynb loader/dumper — Jupyter notebook format."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import nbformat
@@ -8,18 +9,167 @@ import nbformat
 from notebookllm.loaders.base import BaseLoader, BaseDumper
 from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument
 
+# Default threshold for streaming (10 MB). Files larger than this use ijson streaming.
+STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024
+
 
 class IpynbLoader(BaseLoader):
-    """Load .ipynb files using nbformat."""
+    """Load .ipynb files using nbformat (small files) or ijson streaming (large files)."""
+
+    streaming_threshold: int = STREAMING_THRESHOLD_BYTES
 
     def load(self, source: str | Path) -> NotebookDocument:
         source = Path(source)
+        file_size = source.stat().st_size
+
+        if file_size >= self.streaming_threshold:
+            return self._load_streaming(source)
+
         nb = nbformat.read(str(source), as_version=4)
         return self._convert(nb)
 
     def loads(self, content: str) -> NotebookDocument:
         nb = nbformat.reads(content, as_version=4)
         return self._convert(nb)
+
+    def _load_streaming(self, filepath: Path) -> NotebookDocument:
+        """Stream-parse a large ipynb file using ijson to avoid loading the entire JSON into memory.
+
+        Falls back to nbformat if ijson is not installed.
+        """
+        try:
+            import ijson
+        except ImportError:
+            # Fall back to nbformat if ijson is not available
+            nb = nbformat.read(str(filepath), as_version=4)
+            return self._convert(nb)
+
+        # Extract metadata from file header (before the "cells" key)
+        metadata = self._extract_metadata(filepath)
+        kernel_name = None
+        if "kernelspec" in metadata:
+            kernel_name = metadata["kernelspec"].get("name")
+
+        # Stream cells using ijson — processes one cell at a time
+        cells = []
+        with open(filepath, "rb") as f:
+            for cell_dict in ijson.items(f, "cells.item"):
+                cells.append(self._cell_from_dict(cell_dict))
+
+        return NotebookDocument(
+            cells=cells,
+            metadata=metadata,
+            kernel_name=kernel_name,
+            source_format="ipynb",
+        )
+
+    @staticmethod
+    def _extract_metadata(filepath: Path) -> dict:
+        """Extract notebook-level metadata by reading the end of the file.
+
+        In .ipynb format, metadata always appears AFTER the cells array
+        and before nbformat/nbformat_minor. We read the last 64 KB of
+        the file (metadata is typically < 1 KB) to extract it without
+        loading the full file into memory.
+        """
+        import json
+
+        file_size = filepath.stat().st_size
+        read_size = min(file_size, 65536)
+
+        with open(filepath, "rb") as f:
+            f.seek(file_size - read_size)
+            tail = f.read()
+
+        try:
+            text = tail.decode("utf-8")
+        except UnicodeDecodeError:
+            return {}
+
+        # Find the LAST "metadata" key — notebook-level metadata is at the end,
+        # after the cells array. Cell-level metadata appears earlier inside each cell.
+        meta_key_idx = text.rfind('"metadata"')
+        if meta_key_idx < 0:
+            return {}
+
+        # Extract the JSON object value for the metadata key
+        meta_section = text[meta_key_idx + len('"metadata"'):]
+        brace_start = meta_section.find("{")
+        if brace_start < 0:
+            return {}
+
+        # Track brace depth to find the matching closing brace
+        depth = 0
+        close_pos = -1
+        for i, ch in enumerate(meta_section[brace_start:]):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    close_pos = brace_start + i
+                    break
+
+        if close_pos < 0:
+            return {}
+
+        try:
+            return json.loads(meta_section[brace_start:close_pos + 1])
+        except json.JSONDecodeError:
+            return {}
+
+    @staticmethod
+    def _cell_from_dict(cell_dict: dict) -> Cell:
+        """Convert an ijson-parsed cell dict to a Cell dataclass.
+
+        This mirrors _convert but works with plain dicts from ijson
+        instead of nbformat NotebookNode objects.
+        """
+        source = cell_dict.get("source", "")
+        if isinstance(source, list):
+            source = "".join(source)
+
+        outputs = []
+        if cell_dict.get("cell_type") == "code":
+            for out in cell_dict.get("outputs", []):
+                outputs.append(IpynbLoader._parse_output_static(out))
+
+        metadata = cell_dict.get("metadata", {}) or {}
+        cell_id = cell_dict.get("id", None)
+
+        return Cell(
+            cell_type=CellType(cell_dict.get("cell_type", "code")),
+            source=source,
+            execution_count=cell_dict.get("execution_count", None),
+            outputs=outputs,
+            metadata=metadata,
+            cell_id=cell_id,
+        )
+
+    @staticmethod
+    def _parse_output_static(out: dict) -> CellOutput:
+        """Parse a cell output dict into CellOutput.
+
+        Works with both nbformat output dicts and plain dicts from ijson.
+        """
+        output_type = out.get("output_type", "unknown")
+        if output_type == "stream":
+            text = out.get("text", "")
+            if isinstance(text, list):
+                text = "".join(text)
+            return CellOutput(output_type=output_type, content=text, name=out.get("name"))
+        elif output_type in ("execute_result", "display_data"):
+            data = out.get("data", {})
+            content = data.get("text/plain", str(data))
+            if isinstance(content, list):
+                content = "".join(content)
+            return CellOutput(output_type=output_type, content=content)
+        elif output_type == "error":
+            traceback = out.get("traceback", [])
+            content = "\n".join(traceback) if isinstance(traceback, list) else str(traceback)
+            return CellOutput(output_type=output_type, content=content)
+        else:
+            return CellOutput(output_type=output_type, content=str(out))
 
     def _convert(self, nb: nbformat.NotebookNode) -> NotebookDocument:
         cells = []
@@ -58,24 +208,8 @@ class IpynbLoader(BaseLoader):
         )
 
     def _parse_output(self, out: dict) -> CellOutput:
-        output_type = out.get("output_type", "unknown")
-        if output_type == "stream":
-            text = out.get("text", "")
-            if isinstance(text, list):
-                text = "".join(text)
-            return CellOutput(output_type=output_type, content=text, name=out.get("name"))
-        elif output_type in ("execute_result", "display_data"):
-            data = out.get("data", {})
-            content = data.get("text/plain", str(data))
-            if isinstance(content, list):
-                content = "".join(content)
-            return CellOutput(output_type=output_type, content=content)
-        elif output_type == "error":
-            traceback = out.get("traceback", [])
-            content = "\n".join(traceback) if isinstance(traceback, list) else str(traceback)
-            return CellOutput(output_type=output_type, content=content)
-        else:
-            return CellOutput(output_type=output_type, content=str(out))
+        """Parse a cell output dict into CellOutput."""
+        return self._parse_output_static(out)
 
 
 class IpynbDumper(BaseDumper):
