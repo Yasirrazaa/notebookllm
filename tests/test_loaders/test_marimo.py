@@ -1,8 +1,7 @@
 """Tests for notebookllm.loaders.marimo — marimo format (.py with @app.cell)."""
-import pytest
 from pathlib import Path
 from notebookllm.loaders.marimo import MarimoLoader
-from notebookllm.models import NotebookDocument, Cell, CellType
+from notebookllm.models import NotebookDocument, CellType
 
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
