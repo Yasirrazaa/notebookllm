@@ -1,28 +1,61 @@
 [build-system]
 requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-backend-path = ["."] # Ensures setuptools can find local configurations if needed
+build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "notebookllm"
-version = "2.0"
-description = "Convert Jupyter notebooks to/from plain text for LLMs, and expose functionality via an MCP server."
+version = "3.0.0"
+description = "Convert and optimize Jupyter notebooks for LLMs"
 readme = "README.md"
-requires-python = ">=3.10" # You can adjust this if needed
-license = { file = "LICENSE" } # Consider creating a LICENSE file (e.g., MIT)
+license = {text = "MIT"}
+requires-python = ">=3.11"
 authors = [
-    { name = "Yasir Raza", email = "yasirabdali6@gmail.com" } 
+    {name = "Yasir Raza", email = "yasir@example.com"},
 ]
-keywords = ["jupyter", "notebook", "llm", "conversion", "mcp", "cli"]
-
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
-    "nbformat",
-    "jupyter_client",
-    "mcp[cli]"
+    "nbformat>=5.9",
+]
+
+[project.optional-dependencies]
+cli = [
+    "click>=8.1",
+    "rich>=13.0",
+]
+mcp = [
+    "mcp[cli]>=1.8.1",
+]
+execute = [
+    "jupyter_client>=8.0",
+]
+all = [
+    "notebookllm[cli,mcp,execute]",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1",
 ]
 
 [project.scripts]
-notebookllm = "cli:main"
-notebookllm-server = "mcp_server:main_cli"
+notebookllm = "notebookllm.cli.commands:cli"
+notebookllm-server = "notebookllm.mcp.server:main"
 
-# Optional: If you want to be more explicit about package discovery for setuptools
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["notebookllm*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
