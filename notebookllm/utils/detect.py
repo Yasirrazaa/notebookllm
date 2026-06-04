@@ -19,9 +19,12 @@ def detect_format(filepath: Path, content: str | None = None) -> str:
     elif ext in (".md", ".rmd"):
         return "markdown"
     elif ext == ".py":
-        if content is None:
-            content = filepath.read_text(encoding="utf-8")
-        if "import marimo" in content or "@app.cell" in content:
+        if content is None and filepath.exists():
+            try:
+                content = filepath.read_text(encoding="utf-8")
+            except Exception:
+                content = ""
+        if content and ("import marimo" in content or "@app.cell" in content):
             return "marimo"
         return "percent"
     else:

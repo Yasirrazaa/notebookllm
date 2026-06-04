@@ -22,6 +22,7 @@ classifiers = [
 ]
 dependencies = [
     "nbformat>=5.9",
+    "pyyaml>=6.0.3",
 ]
 
 [project.optional-dependencies]
@@ -59,3 +60,11 @@ addopts = "-v --tb=short"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[dependency-groups]
+dev = [
+    "click>=8.1",
+    "mcp[cli]>=1.8.1",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+]
