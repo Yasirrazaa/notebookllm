@@ -1,0 +1,19 @@
+---
+title: "Analysis"
+author: "Yasir"
+---
+
+## Setup
+
+```{python}
+import pandas as pd
+df = pd.read_csv("data.csv")
+```
+
+## Results
+
+```{python}
+df.head()
+```
+
+Some markdown text between code cells.
