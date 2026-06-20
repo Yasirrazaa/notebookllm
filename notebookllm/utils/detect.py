@@ -34,7 +34,7 @@ def detect_format(filepath: Path, content: str | None = None) -> str:
 def detect_text_format(content: str) -> str:
     """Detect format from text content alone (content sniffing).
 
-    Returns: "percent", "marimo", "quarto", "markdown"
+    Returns: "percent", "marimo", "quarto", "markdown", "ipynb"
     """
     lines = content.splitlines()
 
@@ -61,6 +61,16 @@ def detect_text_format(content: str) -> str:
         stripped = line.strip()
         if stripped.startswith("```python"):
             return "markdown"
+
+    # Check for ipynb JSON content (must be after structured formats)
+    if content.strip().startswith("{"):
+        try:
+            import json as _json
+            obj = _json.loads(content)
+            if "cells" in obj and "nbformat" in obj:
+                return "ipynb"
+        except (_json.JSONDecodeError, Exception):
+            pass
 
     # Fallback: treat as percent format
     return "percent"

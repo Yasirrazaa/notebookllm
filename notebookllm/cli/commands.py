@@ -5,7 +5,7 @@ import click
 from pathlib import Path
 
 from notebookllm.loaders import load_file, dump_file
-from notebookllm.models import OutputMode, CellType
+from notebookllm.models import NotebookDocument, OutputMode, CellType
 
 
 @click.group()
@@ -15,7 +15,7 @@ def cli():
     pass
 
 
-def _load_or_abort(file: str) -> object:
+def _load_or_abort(file: str) -> NotebookDocument:
     """Load a notebook file and abort with a clean error on failure."""
     try:
         return load_file(file)

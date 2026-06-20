@@ -4,12 +4,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
-
-
 class CellType(Enum):
     """Type of notebook cell."""
 

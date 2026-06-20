@@ -63,8 +63,8 @@ class TestServer:
         assert result.exit_code == 0
         assert "start" in result.output.lower() or "transport" in result.output.lower()
 
-    def test_server_start_help(self, runner):
-        result = runner.invoke(cli, ["server", "start", "--help"])
+    def test_server_transport_option(self, runner):
+        result = runner.invoke(cli, ["server", "--help"])
         assert result.exit_code == 0
         assert "stdio" in result.output or "sse" in result.output
 

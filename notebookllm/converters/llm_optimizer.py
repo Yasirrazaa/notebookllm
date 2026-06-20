@@ -12,12 +12,10 @@ class LLMOptimizer:
         mode: OutputMode = OutputMode.MINIMAL,
         include_cell_markers: bool = True,
         max_line_length: int | None = None,
-        strip_outputs: bool = True,
     ):
         self.mode = mode
         self.include_cell_markers = include_cell_markers
         self.max_line_length = max_line_length
-        self.strip_outputs = strip_outputs
 
     def optimize(self, doc: NotebookDocument) -> str:
         """Produce optimized text based on mode."""

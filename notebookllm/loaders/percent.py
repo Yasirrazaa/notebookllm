@@ -82,7 +82,8 @@ class PercentDumper(BaseDumper):
         parts = []
         for cell in doc.cells:
             marker = f"# %% [{cell.cell_type.value}]"
-            parts.append(f"{marker}\n{cell.source}")
+            source = cell.source.rstrip("\n")
+            parts.append(f"{marker}\n{source}")
 
         result = "\n\n".join(parts).rstrip() + "\n"
         if filepath:

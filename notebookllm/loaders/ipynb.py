@@ -25,7 +25,7 @@ class IpynbLoader(BaseLoader):
         file_size = source.stat().st_size
 
         if file_size >= self.streaming_threshold:
-            return self._load_streaming(source)
+            return self._load_streaming(source, file_size=file_size)
 
         nb = nbformat.read(str(source), as_version=4)
         return self._convert(nb)
@@ -34,7 +34,7 @@ class IpynbLoader(BaseLoader):
         nb = nbformat.reads(content, as_version=4)
         return self._convert(nb)
 
-    def _load_streaming(self, filepath: Path) -> NotebookDocument:
+    def _load_streaming(self, filepath: Path, file_size: int | None = None) -> NotebookDocument:
         """Stream-parse a large ipynb file using ijson to avoid loading the entire JSON into memory.
 
         Falls back to nbformat if ijson is not installed.
@@ -47,7 +47,7 @@ class IpynbLoader(BaseLoader):
             return self._convert(nb)
 
         # Extract metadata from file tail — pass known file_size to avoid extra stat()
-        metadata = self._extract_metadata(filepath, file_size=filepath.stat().st_size)
+        metadata = self._extract_metadata(filepath, file_size=file_size)
         kernel_name = None
         if "kernelspec" in metadata:
             kernel_name = metadata["kernelspec"].get("name")
@@ -266,9 +266,12 @@ class IpynbDumper(BaseDumper):
 
     def _dump_output(self, out: CellOutput) -> dict:
         if out.output_type == "stream":
+            text = out.content
+            if isinstance(text, list):
+                text = "".join(text)
             return nbformat.v4.new_output(
                 "stream",
-                text=out.content,
+                text=text,
                 name=out.name or "stdout",
             )
         elif out.output_type in ("execute_result", "display_data"):
