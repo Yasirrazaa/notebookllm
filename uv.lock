@@ -619,16 +619,16 @@ name = "notebookllm"
 version = "3.0.0"
 source = { editable = "." }
 dependencies = [
-    { name = "ijson" },
     { name = "nbformat" },
-    { name = "pyyaml" },
 ]
 
 [package.optional-dependencies]
 all = [
     { name = "click" },
+    { name = "ijson" },
     { name = "jupyter-client" },
     { name = "mcp", extra = ["cli"] },
+    { name = "pyyaml" },
     { name = "rich" },
 ]
 cli = [
@@ -646,6 +646,12 @@ execute = [
 mcp = [
     { name = "mcp", extra = ["cli"] },
 ]
+stream = [
+    { name = "ijson" },
+]
+yaml = [
+    { name = "pyyaml" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -658,18 +664,18 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "click", marker = "extra == 'cli'", specifier = ">=8.1" },
-    { name = "ijson", specifier = ">=3.5.0" },
+    { name = "ijson", marker = "extra == 'stream'", specifier = ">=3.5" },
     { name = "jupyter-client", marker = "extra == 'execute'", specifier = ">=8.0" },
     { name = "mcp", extras = ["cli"], marker = "extra == 'mcp'", specifier = ">=1.8.1" },
     { name = "nbformat", specifier = ">=5.9" },
-    { name = "notebookllm", extras = ["cli", "mcp", "execute"], marker = "extra == 'all'" },
+    { name = "notebookllm", extras = ["cli", "mcp", "execute", "stream", "yaml"], marker = "extra == 'all'" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
-    { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6.0" },
     { name = "rich", marker = "extra == 'cli'", specifier = ">=13.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1" },
 ]
-provides-extras = ["cli", "mcp", "execute", "all", "dev"]
+provides-extras = ["cli", "mcp", "execute", "stream", "yaml", "all", "dev"]
 
 [package.metadata.requires-dev]
 dev = [
