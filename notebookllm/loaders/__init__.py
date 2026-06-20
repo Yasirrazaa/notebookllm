@@ -58,7 +58,10 @@ def loads_text(text: str, source_format: str | None = None) -> NotebookDocument:
     if source_format is None:
         source_format = detect_text_format(text)
 
-    if source_format == "percent":
+    if source_format == "ipynb":
+        from notebookllm.loaders.ipynb import IpynbLoader
+        return IpynbLoader().loads(text)
+    elif source_format == "percent":
         from notebookllm.loaders.percent import PercentLoader
         return PercentLoader().loads(text)
     elif source_format == "marimo":

@@ -1,4 +1,4 @@
-"""MCP server for notebookllm — 11 tools for notebook operations."""
+"""MCP server for notebookllm — tools for notebook operations."""
 from __future__ import annotations
 
 import uuid
@@ -7,6 +7,8 @@ from typing import Any
 from notebookllm.loaders import load_file, dump_file
 from notebookllm.mcp.session import SessionManager
 from notebookllm.models import Cell, CellType, NotebookDocument, OutputMode
+
+MAX_SESSIONS = 100
 
 
 def create_app(session_manager: SessionManager | None = None):
@@ -27,6 +29,11 @@ def create_app(session_manager: SessionManager | None = None):
         session_id = str(uuid.uuid4())
         doc = load_file(filepath)
         session_manager.store(session_id, doc, filepath=filepath)
+        # Evict oldest session if over limit
+        sessions = session_manager.list_sessions()
+        if len(sessions) > MAX_SESSIONS:
+            oldest = sessions[0]
+            session_manager.delete(oldest)
         return f"Loaded {len(doc.cells)} cells from {filepath}. Session: {session_id}"
 
     @mcp.tool()
