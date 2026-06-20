@@ -140,7 +140,10 @@ def create_app(session_manager: SessionManager | None = None):
             client = km.client()
             client.start_channels()
             msg_id = client.execute(cell.source)
-            reply = client.get_shell_msg(timeout=timeout)
+            try:
+                reply = client.get_shell_msg(timeout=timeout)
+            except TimeoutError:
+                return f"Cell execution timed out after {timeout}s"
             if reply["content"]["status"] == "error":
                 return f"Execution error: {reply['content']['evalue']}"
 

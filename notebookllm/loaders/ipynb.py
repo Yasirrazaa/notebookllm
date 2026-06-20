@@ -45,8 +45,8 @@ class IpynbLoader(BaseLoader):
             nb = nbformat.read(str(filepath), as_version=4)
             return self._convert(nb)
 
-        # Extract metadata from file header (before the "cells" key)
-        metadata = self._extract_metadata(filepath)
+        # Extract metadata from file tail — pass known file_size to avoid extra stat()
+        metadata = self._extract_metadata(filepath, file_size=filepath.stat().st_size)
         kernel_name = None
         if "kernelspec" in metadata:
             kernel_name = metadata["kernelspec"].get("name")
@@ -65,17 +65,21 @@ class IpynbLoader(BaseLoader):
         )
 
     @staticmethod
-    def _extract_metadata(filepath: Path) -> dict:
+    def _extract_metadata(filepath: Path, file_size: int | None = None) -> dict:
         """Extract notebook-level metadata by reading the end of the file.
 
         In .ipynb format, metadata always appears AFTER the cells array
         and before nbformat/nbformat_minor. We read the last 64 KB of
         the file (metadata is typically < 1 KB) to extract it without
         loading the full file into memory.
-        """
-        import json
 
-        file_size = filepath.stat().st_size
+        NOTE: Uses brace-depth tracking which may fail if metadata values
+        contain unescaped braces ({ or }) inside strings. This is a known
+        limitation of the heuristic approach — production notebooks rarely
+        have such values in notebook-level metadata.
+        """
+        if file_size is None:
+            file_size = filepath.stat().st_size
         read_size = min(file_size, 65536)
 
         with open(filepath, "rb") as f:
@@ -230,7 +234,7 @@ class IpynbLoader(BaseLoader):
 class IpynbDumper(BaseDumper):
     """Dump to .ipynb format."""
 
-    def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str | None:
+    def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str:
         nb = nbformat.v4.new_notebook()
         nb.metadata = doc.metadata.copy()
         if doc.kernel_name:

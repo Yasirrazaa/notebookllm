@@ -70,6 +70,7 @@ class LLMOptimizer:
         elif output.output_type == "display_data":
             return f"# [display] {content}"
         elif output.output_type == "error":
-            return f"# [error] {content}"
+            lines_content = content.split("\n")
+            return "\n".join(f"# [error] {l}" for l in lines_content) if len(lines_content) > 1 else f"# [error] {content}"
         else:
             return f"# [{output.output_type}] {content}"

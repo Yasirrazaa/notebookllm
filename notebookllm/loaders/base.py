@@ -25,6 +25,6 @@ class BaseDumper(ABC):
     """Abstract base class for format dumpers."""
 
     @abstractmethod
-    def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str | None:
+    def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str:
         """Dump a notebook to string, optionally writing to file."""
         ...

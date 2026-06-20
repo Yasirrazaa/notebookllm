@@ -29,6 +29,7 @@ class MarimoLoader(BaseLoader):
         # Extract __generated_with version from module-level assignment
         generated_with = None
         for node in ast.iter_child_nodes(tree):
+            # Handle regular assignments: __generated_with = "0.8"
             if isinstance(node, ast.Assign):
                 for target in node.targets:
                     if isinstance(target, ast.Name) and target.id == "__generated_with":
@@ -36,6 +37,13 @@ class MarimoLoader(BaseLoader):
                             generated_with = node.value.value
                         elif isinstance(node.value, ast.Str):  # Python < 3.8 compat
                             generated_with = node.value.s
+            # Handle annotated assignments: __generated_with: str = "0.8" (marimo v0.8+)
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                if node.target.id == "__generated_with" and node.value is not None:
+                    if isinstance(node.value, ast.Constant):
+                        generated_with = node.value.value
+                    elif isinstance(node.value, ast.Str):
+                        generated_with = node.value.s
 
         for node in ast.iter_child_nodes(tree):
             if not isinstance(node, ast.FunctionDef):
@@ -76,7 +84,13 @@ class MarimoLoader(BaseLoader):
         """Extract cell body and detect if it's markdown (mo.md() call)."""
         lines = content.splitlines(keepends=True)
         body_start = node.body[0].lineno - 1
-        end_line = node.body[-1].end_lineno if hasattr(node, "end_lineno") and node.end_lineno else (body_start + len(node.body))
+        # Use end_lineno (Python 3.8+); fall back to computing the last body line
+        if hasattr(node, "end_lineno") and node.end_lineno:
+            end_line = node.body[-1].end_lineno
+        elif hasattr(node.body[-1], "end_lineno") and node.body[-1].end_lineno:
+            end_line = node.body[-1].end_lineno
+        else:
+            end_line = max(stmt.lineno for stmt in node.body)
 
         body_lines = lines[body_start:end_line]
         source = "".join(body_lines)

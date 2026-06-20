@@ -10,29 +10,6 @@ from notebookllm.models import Cell, CellType, NotebookDocument
 CELL_MARKER = re.compile(r"^#\s*%%\s*(?:\[(\w+)\])?\s*$")
 
 
-def _is_inside_string(lines: list[str]) -> bool:
-    """Check if the current code is inside an unclosed triple-quoted string.
-
-    Tracks triple-double-quote and triple-single-quote boundaries to avoid
-    false-positive cell marker detection when '# %%' appears inside a string.
-    Returns True if we're inside an unclosed triple-quoted string.
-    """
-    depth_dq = 0  # triple-double-quote depth
-    depth_sq = 0  # triple-single-quote depth
-    for line in lines:
-        i = 0
-        while i < len(line):
-            if line[i:i+3] == '"""':
-                depth_dq ^= 1  # toggle
-                i += 3
-            elif line[i:i+3] == "'''":
-                depth_sq ^= 1
-                i += 3
-            else:
-                i += 1
-    return depth_dq == 1 or depth_sq == 1
-
-
 class PercentLoader(BaseLoader):
     """Load percent format .py files."""
 
@@ -45,14 +22,20 @@ class PercentLoader(BaseLoader):
         cells: list[Cell] = []
         current_type = CellType.CODE
         current_lines: list[str] = []
-        all_lines: list[str] = []
         has_markers = False
+        in_triple_dq = False  # inside """ (odd depth)
+        in_triple_sq = False  # inside ''' (odd depth)
 
         for line in content.splitlines(keepends=True):
+            line_before_comment = line.split("#")[0]
+
+            # Track triple-quote state incrementally (O(1) per line instead of O(n²))
+            in_triple_dq = _toggle_on_triple(line_before_comment, '"""', in_triple_dq)
+            in_triple_sq = _toggle_on_triple(line_before_comment, "'''", in_triple_sq)
+
             # Skip markers that appear inside triple-quoted strings
-            if _is_inside_string(all_lines + [line.split("#")[0]]):
+            if in_triple_dq or in_triple_sq:
                 current_lines.append(line)
-                all_lines.append(line)
                 continue
 
             match = CELL_MARKER.match(line.rstrip())
@@ -69,7 +52,6 @@ class PercentLoader(BaseLoader):
                 current_lines = []
             else:
                 current_lines.append(line)
-            all_lines.append(line)
 
         if current_lines:
             source = "".join(current_lines).rstrip("\n")
@@ -81,10 +63,22 @@ class PercentLoader(BaseLoader):
         return NotebookDocument(cells=cells, source_format="percent")
 
 
+def _toggle_on_triple(text: str, delimiter: str, current: bool) -> bool:
+    """Toggle boolean state on each occurrence of the triple delimiter in text."""
+    i = 0
+    while i < len(text):
+        idx = text.find(delimiter, i)
+        if idx < 0:
+            break
+        current = not current
+        i = idx + 3
+    return current
+
+
 class PercentDumper(BaseDumper):
     """Dump to percent format .py files."""
 
-    def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str | None:
+    def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str:
         parts = []
         for cell in doc.cells:
             marker = f"# %% [{cell.cell_type.value}]"

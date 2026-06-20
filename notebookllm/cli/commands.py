@@ -15,6 +15,15 @@ def cli():
     pass
 
 
+def _load_or_abort(file: str) -> object:
+    """Load a notebook file and abort with a clean error on failure."""
+    try:
+        return load_file(file)
+    except Exception as e:
+        click.echo(f"Error: Cannot load {file}: {e}", err=True)
+        raise click.Abort()
+
+
 @cli.command()
 @click.argument("file", type=click.Path(exists=True))
 @click.option("-o", "--output", type=click.Path(), help="Output file path")
@@ -23,7 +32,7 @@ def cli():
               help="LLM output mode")
 def convert(file: str, output: str | None, fmt: str | None, mode: str):
     """Convert notebook between formats."""
-    doc = load_file(file)
+    doc = _load_or_abort(file)
 
     if output:
         dump_file(doc, output, fmt=fmt)
@@ -38,7 +47,7 @@ def convert(file: str, output: str | None, fmt: str | None, mode: str):
 @click.argument("file", type=click.Path(exists=True))
 def inspect(file: str):
     """Inspect notebook structure."""
-    doc = load_file(file)
+    doc = _load_or_abort(file)
     click.echo(f"Format: {doc.source_format}")
     click.echo(f"Cells: {len(doc.cells)}")
     click.echo(f"Language: {doc.language}")
@@ -57,7 +66,7 @@ def inspect(file: str):
               help="Filter by cell type")
 def search(file: str, query: str, cell_type: str | None):
     """Search cells by content."""
-    doc = load_file(file)
+    doc = _load_or_abort(file)
     ct = CellType(cell_type) if cell_type else None
     results = doc.search(query, cell_type=ct)
     if not results:
@@ -73,7 +82,7 @@ def search(file: str, query: str, cell_type: str | None):
 @click.argument("index", type=int)
 def get(file: str, index: int):
     """Get a specific cell by index."""
-    doc = load_file(file)
+    doc = _load_or_abort(file)
     cell = doc.get_cell(index)
     click.echo(f"Cell [{index}] ({cell.cell_type.value}):")
     click.echo(cell.source)

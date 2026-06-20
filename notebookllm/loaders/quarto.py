@@ -81,7 +81,7 @@ class QuartoLoader(BaseLoader):
 class QuartoDumper(BaseDumper):
     """Dump to quarto .qmd format."""
 
-    def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str | None:
+    def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str:
         parts = []
 
         # YAML frontmatter
@@ -93,13 +93,19 @@ class QuartoDumper(BaseDumper):
 
         for cell in doc.cells:
             if cell.cell_type == CellType.CODE:
-                parts.append("```{python}")
+                lang = cell.metadata.get("language", "python") if cell.metadata else "python"
+                parts.append(f"```{{{lang}}}")
+                # Preserve cell options if present
+                if cell.metadata and "quarto_options" in cell.metadata:
+                    for k, v in cell.metadata["quarto_options"].items():
+                        parts.append(f"#| {k}: {v}")
                 parts.append(cell.source)
                 parts.append("```")
             elif cell.cell_type == CellType.MARKDOWN:
                 parts.append(cell.source)
             elif cell.cell_type == CellType.RAW:
-                parts.append("```{raw}")
+                lang = cell.metadata.get("language", "raw") if cell.metadata else "raw"
+                parts.append(f"```{{{lang}}}")
                 parts.append(cell.source)
                 parts.append("```")
             parts.append("")

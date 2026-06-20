@@ -63,11 +63,12 @@ class MarkdownLoader(BaseLoader):
 class MarkdownDumper(BaseDumper):
     """Dump to markdown format with embedded code blocks."""
 
-    def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str | None:
+    def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str:
         parts = []
         for cell in doc.cells:
             if cell.cell_type == CellType.CODE:
-                parts.append("```python")
+                lang = cell.metadata.get("language", "python") if cell.metadata else "python"
+                parts.append(f"```{lang}")
                 parts.append(cell.source)
                 parts.append("```")
             elif cell.cell_type == CellType.MARKDOWN:
