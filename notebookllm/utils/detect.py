@@ -65,11 +65,11 @@ def detect_text_format(content: str) -> str:
     # Check for ipynb JSON content (must be after structured formats)
     if content.strip().startswith("{"):
         try:
-            import json as _json
-            obj = _json.loads(content)
+            import json
+            obj = json.loads(content)
             if "cells" in obj and "nbformat" in obj:
                 return "ipynb"
-        except (_json.JSONDecodeError, Exception):
+        except Exception:
             pass
 
     # Fallback: treat as percent format

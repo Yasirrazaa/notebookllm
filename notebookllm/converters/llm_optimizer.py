@@ -1,7 +1,7 @@
 """LLM Optimizer — converts NotebookDocument to LLM-optimized text."""
 from __future__ import annotations
 
-from notebookllm.models import CellOutput, CellType, NotebookDocument, OutputMode
+from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument, OutputMode
 
 
 class LLMOptimizer:
@@ -28,7 +28,7 @@ class LLMOptimizer:
 
         return "\n\n".join(parts)
 
-    def _format_cell(self, cell) -> str:
+    def _format_cell(self, cell: Cell) -> str:
         lines = []
 
         # Cell marker

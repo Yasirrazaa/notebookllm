@@ -64,6 +64,14 @@ class TestDetectTextFormat:
         text = "# Title\n\n```python\nx = 1\n```\n"
         assert detect_text_format(text) == "markdown"
 
+    def test_ipynb_json_content(self):
+        text = '{"cells": [], "nbformat": 4, "nbformat_minor": 5}'
+        assert detect_text_format(text) == "ipynb"
+
+    def test_ipynb_json_no_notebook(self):
+        text = '{"cells": [], "version": 2}'
+        assert detect_text_format(text) != "ipynb"
+
     def test_plain_python_fallback(self):
         text = "x = 1\nprint(x)\n"
         assert detect_text_format(text) == "percent"

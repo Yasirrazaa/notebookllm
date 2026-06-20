@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import click
-from pathlib import Path
 
 from notebookllm.loaders import load_file, dump_file
 from notebookllm.models import NotebookDocument, OutputMode, CellType
