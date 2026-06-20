@@ -1,6 +1,7 @@
 """Tests for notebookllm.loaders.ipynb — .ipynb loader/dumper."""
 import json
 import os
+import tempfile
 from pathlib import Path
 
 from notebookllm.loaders.ipynb import IpynbLoader, IpynbDumper, STREAMING_THRESHOLD_BYTES
@@ -520,3 +521,59 @@ class TestIpynbDumper:
         assert output.content["text/plain"] == "42"
         assert output.content["text/html"] == "<b>42</b>"
         assert output.content["image/png"] == "iVBOR..."
+
+
+class TestExtractMetadata:
+    """Edge case tests for the metadata extraction logic."""
+
+    def _make_ipynb(self, cells_json: str, metadata_json: str) -> str:
+        return (
+            '{"cells": ['
+            + cells_json
+            + '],'
+            + metadata_json
+            + ', "nbformat": 4, "nbformat_minor": 5}'
+        )
+
+    def test_no_metadata_key(self, tmp_path):
+        """File with no 'metadata' key at all."""
+        f = tmp_path / "no_meta.ipynb"
+        f.write_text('{"cells": [], "nbformat": 4, "nbformat_minor": 5}')
+        result = IpynbLoader._extract_metadata(f)
+        assert result == {}
+
+    def test_metadata_with_unclosed_braces(self, tmp_path):
+        """Metadata with genuinely unclosed braces (never closes)."""
+        f = tmp_path / "bad_brace.ipynb"
+        f.write_text('{"cells": [], "metadata": {"unclosed": true, ')
+        result = IpynbLoader._extract_metadata(f)
+        assert result == {}
+
+    def test_metadata_key_in_cell_source_not_confused(self, tmp_path):
+        """'metadata' string appearing inside cell source should not confuse extraction."""
+        f = tmp_path / "cell_source_meta.ipynb"
+        f.write_text(
+            '{"cells": [{"cell_type": "code", "source": ["# metadata in source"],'
+            '"metadata": {}}], "metadata": {"notebook_key": 42},'
+            '"nbformat": 4, "nbformat_minor": 5}'
+        )
+        result = IpynbLoader._extract_metadata(f)
+        assert result == {"notebook_key": 42}
+
+    def test_binary_content_no_metadata(self, tmp_path):
+        """Binary data near the end (not valid UTF-8 after metadata)."""
+        f = tmp_path / "binary.ipynb"
+        # Write a valid header then pad with binary garbage
+        f.write_bytes(b'{"cells": [], "metadata": {}, "nbformat": 4, "nbformat_minor": 5}')
+        result = IpynbLoader._extract_metadata(f)
+        assert result == {}
+
+    def test_metadata_with_nested_objects(self, tmp_path):
+        """Deeply nested metadata object."""
+        nested_meta = json.dumps({"kernelspec": {"name": "python3", "display_name": "Python 3"},
+                                   "deep": {"a": {"b": {"c": "value"}}}})
+        f = tmp_path / "nested.ipynb"
+        f.write_text(self._make_ipynb("", f'"metadata": {nested_meta}'))
+        result = IpynbLoader._extract_metadata(f)
+        assert result["kernelspec"]["name"] == "python3"
+        assert result["deep"]["a"]["b"]["c"] == "value"

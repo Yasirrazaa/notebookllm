@@ -119,6 +119,8 @@ class TestQuartoRoundtrip:
         result = dumper.dump(doc)
         doc2 = loader.loads(result)
         assert len(doc2.cells) == 2
+        assert doc2.cells[0].source == "## Setup"
+        assert doc2.cells[1].source == "x = 1"
 
     def test_roundtrip_preserves_metadata(self, tmp_path):
         doc = NotebookDocument(metadata={"title": "Test", "author": "Me"})
@@ -161,6 +163,18 @@ class TestMarkdownRoundtrip:
         assert len(doc2.cells) == 2
 
 
+def _assert_cells_match(doc1: NotebookDocument, doc2: NotebookDocument) -> None:
+    """Assert that two notebooks have matching cell types and sources."""
+    assert len(doc2.cells) == len(doc1.cells), (
+        f"Cell count mismatch: {len(doc2.cells)} vs {len(doc1.cells)}"
+    )
+    for i, (c1, c2) in enumerate(zip(doc1.cells, doc2.cells)):
+        assert c1.cell_type == c2.cell_type, f"Cell {i}: type {c1.cell_type} vs {c2.cell_type}"
+        assert c1.source.strip() == c2.source.strip(), (
+            f"Cell {i}: source mismatch\n  Expected: {c1.source!r}\n  Got:      {c2.source!r}"
+        )
+
+
 class TestCrossFormatRoundtrip:
     """Conversion between formats — load from one format, dump to another, verify."""
 
@@ -170,7 +184,7 @@ class TestCrossFormatRoundtrip:
         dump_file(doc, out)
         doc2 = load_file(out)
         assert doc2.source_format == "percent"
-        assert len(doc2.cells) == len(doc.cells)
+        _assert_cells_match(doc, doc2)
 
     def test_ipynb_to_quarto(self, tmp_path):
         doc = load_file(FIXTURES / "sample.ipynb")
@@ -178,7 +192,7 @@ class TestCrossFormatRoundtrip:
         dump_file(doc, out)
         doc2 = load_file(out)
         assert doc2.source_format == "quarto"
-        assert len(doc2.cells) == len(doc.cells)
+        _assert_cells_match(doc, doc2)
 
     def test_percent_to_ipynb(self, tmp_path):
         doc = load_file(FIXTURES / "sample_percent.py")
@@ -186,7 +200,7 @@ class TestCrossFormatRoundtrip:
         dump_file(doc, out)
         doc2 = load_file(out)
         assert doc2.source_format == "ipynb"
-        assert len(doc2.cells) == len(doc.cells)
+        _assert_cells_match(doc, doc2)
 
     def test_percent_to_markdown(self, tmp_path):
         doc = load_file(FIXTURES / "sample_percent.py")
@@ -194,7 +208,7 @@ class TestCrossFormatRoundtrip:
         dump_file(doc, out)
         doc2 = load_file(out)
         assert doc2.source_format == "markdown"
-        assert len(doc2.cells) == len(doc.cells)
+        _assert_cells_match(doc, doc2)
 
     def test_quarto_to_percent(self, tmp_path):
         doc = load_file(FIXTURES / "sample_quarto.qmd")
@@ -202,7 +216,7 @@ class TestCrossFormatRoundtrip:
         dump_file(doc, out)
         doc2 = load_file(out)
         assert doc2.source_format == "percent"
-        assert len(doc2.cells) == len(doc.cells)
+        _assert_cells_match(doc, doc2)
 
     def test_markdown_to_ipynb(self, tmp_path):
         doc = load_file(FIXTURES / "sample_markdown.md")
@@ -210,7 +224,7 @@ class TestCrossFormatRoundtrip:
         dump_file(doc, out)
         doc2 = load_file(out)
         assert doc2.source_format == "ipynb"
-        assert len(doc2.cells) == len(doc.cells)
+        _assert_cells_match(doc, doc2)
 
 
 class TestNotebookDocumentRoundtrip:

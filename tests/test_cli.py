@@ -55,3 +55,30 @@ class TestGet:
     def test_get_cell(self, runner):
         result = runner.invoke(cli, ["get", str(FIXTURES / "sample_percent.py"), "0"])
         assert result.exit_code == 0
+
+
+class TestServer:
+    def test_server_help(self, runner):
+        result = runner.invoke(cli, ["server", "--help"])
+        assert result.exit_code == 0
+        assert "start" in result.output.lower() or "transport" in result.output.lower()
+
+    def test_server_start_help(self, runner):
+        result = runner.invoke(cli, ["server", "start", "--help"])
+        assert result.exit_code == 0
+        assert "stdio" in result.output or "sse" in result.output
+
+
+class TestErrors:
+    def test_convert_malformed_ipynb(self, runner, tmp_path):
+        bad_file = tmp_path / "bad.ipynb"
+        bad_file.write_text("{invalid json!!!}")
+        result = runner.invoke(cli, ["convert", str(bad_file)])
+        assert result.exit_code != 0
+        assert "error" in result.output.lower() or "Error" in result.output
+
+    def test_inspect_malformed_file(self, runner, tmp_path):
+        bad_file = tmp_path / "bad.ipynb"
+        bad_file.write_text("not json at all")
+        result = runner.invoke(cli, ["inspect", str(bad_file)])
+        assert result.exit_code != 0

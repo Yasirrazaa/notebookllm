@@ -6,6 +6,7 @@ import uuid
 from pathlib import Path
 
 import nbformat
+from nbformat.notebooknode import NotebookNode
 
 from notebookllm.loaders.base import BaseLoader, BaseDumper
 from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument
@@ -226,9 +227,9 @@ class IpynbLoader(BaseLoader):
             source_format="ipynb",
         )
 
-    def _parse_output(self, out: dict) -> CellOutput:
-        """Parse a cell output dict into CellOutput."""
-        return self._parse_output_static(out)
+    def _parse_output(self, out: NotebookNode) -> CellOutput:
+        """Parse a cell output NotebookNode into CellOutput."""
+        return self._parse_output_static(dict(out))
 
 
 class IpynbDumper(BaseDumper):
@@ -282,4 +283,7 @@ class IpynbDumper(BaseDumper):
                 "error",
                 traceback=[out.content],
             )
-        return nbformat.v4.new_output(out.output_type, data=str(out.content))
+        # Fallback: construct minimal output for unknown types
+        fallback = nbformat.v4.new_output("execute_result", data={"text/plain": str(out.content)})
+        fallback.output_type = out.output_type
+        return fallback
