@@ -55,6 +55,9 @@ def dump_file(doc: NotebookDocument, filepath: str | Path, fmt: str | None = Non
     elif fmt == "rmarkdown":
         from notebookllm.loaders.rmarkdown import RMarkdownDumper
         RMarkdownDumper().dump(doc, filepath)
+    elif fmt == "script":
+        from notebookllm.loaders.script import ScriptDumper
+        ScriptDumper().dump(doc, filepath)
     else:
         raise ValueError(f"Unsupported format: {fmt}")
 
