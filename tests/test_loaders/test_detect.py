@@ -1,6 +1,9 @@
 """Tests for notebookllm.utils.detect — format detection."""
-import pytest
+
 from pathlib import Path
+
+import pytest
+
 from notebookllm.utils.detect import detect_format, detect_text_format
 
 
@@ -75,3 +78,14 @@ class TestDetectTextFormat:
     def test_plain_python_fallback(self):
         text = "x = 1\nprint(x)\n"
         assert detect_text_format(text) == "percent"
+
+
+def test_py_read_error_fallback(tmp_path, monkeypatch):
+    """If reading .py file fails, fallback to treating as percent."""
+    f = tmp_path / "script.py"
+    f.write_text("import marimo\n")
+    original_read_text = f.read_text
+    def failing_read(*args, **kwargs):
+        raise OSError("read failed")
+    monkeypatch.setattr(Path, "read_text", failing_read)
+    assert detect_format(f) == "percent"

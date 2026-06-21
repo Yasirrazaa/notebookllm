@@ -1,9 +1,8 @@
 """Tests for notebookllm.loaders.quarto — quarto format (.qmd)."""
-import pytest
 from pathlib import Path
-from notebookllm.loaders.quarto import QuartoLoader, QuartoDumper
-from notebookllm.models import NotebookDocument, Cell, CellType
 
+from notebookllm.loaders.quarto import QuartoDumper, QuartoLoader
+from notebookllm.models import Cell, CellType, NotebookDocument
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 

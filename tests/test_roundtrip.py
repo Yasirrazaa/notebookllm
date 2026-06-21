@@ -1,14 +1,12 @@
 """Round-trip fidelity tests — format A → NotebookDocument → format A preserves content."""
-import json
 from pathlib import Path
 
-from notebookllm.loaders import load_file, dump_file, loads_text
-from notebookllm.loaders.ipynb import IpynbLoader, IpynbDumper
-from notebookllm.loaders.percent import PercentLoader, PercentDumper
-from notebookllm.loaders.quarto import QuartoLoader, QuartoDumper
-from notebookllm.loaders.markdown import MarkdownLoader, MarkdownDumper
-from notebookllm.models import NotebookDocument, Cell, CellType
-
+from notebookllm.loaders import dump_file, load_file
+from notebookllm.loaders.ipynb import IpynbDumper, IpynbLoader
+from notebookllm.loaders.markdown import MarkdownDumper, MarkdownLoader
+from notebookllm.loaders.percent import PercentDumper, PercentLoader
+from notebookllm.loaders.quarto import QuartoDumper, QuartoLoader
+from notebookllm.models import Cell, CellType, NotebookDocument
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -22,7 +20,7 @@ class TestIpynbRoundtrip:
         dump_file(doc, out)
         doc2 = load_file(out)
         assert len(doc2.cells) == len(doc.cells)
-        for c1, c2 in zip(doc.cells, doc2.cells):
+        for c1, c2 in zip(doc.cells, doc2.cells, strict=True):
             assert c1.cell_type == c2.cell_type
             assert c1.source == c2.source
 
@@ -63,7 +61,7 @@ class TestPercentRoundtrip:
         dump_file(doc, out)
         doc2 = load_file(out)
         assert len(doc2.cells) == len(doc.cells)
-        for c1, c2 in zip(doc.cells, doc2.cells):
+        for c1, c2 in zip(doc.cells, doc2.cells, strict=True):
             assert c1.cell_type == c2.cell_type
             assert c1.source.strip() == c2.source.strip()
 
@@ -168,7 +166,7 @@ def _assert_cells_match(doc1: NotebookDocument, doc2: NotebookDocument) -> None:
     assert len(doc2.cells) == len(doc1.cells), (
         f"Cell count mismatch: {len(doc2.cells)} vs {len(doc1.cells)}"
     )
-    for i, (c1, c2) in enumerate(zip(doc1.cells, doc2.cells)):
+    for i, (c1, c2) in enumerate(zip(doc1.cells, doc2.cells, strict=True)):
         assert c1.cell_type == c2.cell_type, f"Cell {i}: type {c1.cell_type} vs {c2.cell_type}"
         assert c1.source.strip() == c2.source.strip(), (
             f"Cell {i}: source mismatch\n  Expected: {c1.source!r}\n  Got:      {c2.source!r}"

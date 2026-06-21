@@ -1,11 +1,12 @@
 """Tests for notebookllm.utils.validation."""
+
 import pytest
-from pathlib import Path
+
 from notebookllm.utils.validation import (
-    validate_filepath,
-    validate_output_format,
     validate_cell_index,
     validate_cell_type,
+    validate_filepath,
+    validate_output_format,
 )
 
 

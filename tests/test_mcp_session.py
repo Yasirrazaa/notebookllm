@@ -1,5 +1,6 @@
 """Tests for notebookllm.mcp.session — session management."""
 import pytest
+
 from notebookllm.mcp.session import SessionManager
 from notebookllm.models import Cell, CellType, NotebookDocument
 
@@ -61,3 +62,7 @@ class TestSessionManager:
         doc = NotebookDocument()
         manager.store("s1", doc)
         assert manager.get_filepath("s1") is None
+
+    def test_get_filepath_nonexistent(self, manager):
+        with pytest.raises(KeyError, match="Session not found"):
+            manager.get_filepath("missing")

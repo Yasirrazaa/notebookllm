@@ -1,9 +1,10 @@
 """Tests for notebookllm.cli.commands — CLI integration."""
+from pathlib import Path
+
 import pytest
 from click.testing import CliRunner
-from pathlib import Path
-from notebookllm.cli.commands import cli
 
+from notebookllm.cli.commands import cli
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -47,7 +48,8 @@ class TestSearch:
         assert result.exit_code == 0
 
     def test_search_with_type(self, runner):
-        result = runner.invoke(cli, ["search", str(FIXTURES / "sample_percent.py"), "pandas", "-t", "code"])
+        path = str(FIXTURES / "sample_percent.py")
+        result = runner.invoke(cli, ["search", path, "pandas", "-t", "code"])
         assert result.exit_code == 0
 
 

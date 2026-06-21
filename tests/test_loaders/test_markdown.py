@@ -1,9 +1,8 @@
 """Tests for notebookllm.loaders.markdown — markdown format (.md with ```python blocks)."""
-import pytest
 from pathlib import Path
-from notebookllm.loaders.markdown import MarkdownLoader, MarkdownDumper
-from notebookllm.models import NotebookDocument, Cell, CellType
 
+from notebookllm.loaders.markdown import MarkdownDumper, MarkdownLoader
+from notebookllm.models import Cell, CellType, NotebookDocument
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
@@ -66,6 +65,14 @@ class TestMarkdownLoader:
         assert len(doc.cells) == 2
         assert doc.cells[0].source == "# Intro"
         assert doc.cells[1].source == "x = 1"
+
+    def test_load_bad_frontmatter(self):
+        """Invalid YAML frontmatter should not crash."""
+        loader = MarkdownLoader()
+        text = "---\n  broken yaml : [\n---\n\nHello\n"
+        doc = loader.loads(text)
+        assert doc.metadata == {}
+        assert len(doc.cells) >= 1
 
 
 class TestMarkdownDumper:

@@ -1,7 +1,8 @@
 """Tests for notebookllm.loaders.base — abstract base classes."""
 import pytest
-from notebookllm.loaders.base import BaseLoader, BaseDumper
-from notebookllm.models import NotebookDocument, Cell, CellType
+
+from notebookllm.loaders.base import BaseDumper, BaseLoader
+from notebookllm.models import Cell, CellType, NotebookDocument
 
 
 class ConcreteLoader(BaseLoader):

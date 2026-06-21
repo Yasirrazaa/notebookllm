@@ -1,9 +1,10 @@
 """Tests for notebookllm.loaders — format auto-detection and dispatch."""
-import pytest
 from pathlib import Path
-from notebookllm.loaders import load_file, dump_file, loads_text
-from notebookllm.models import NotebookDocument, Cell, CellType
 
+import pytest
+
+from notebookllm.loaders import dump_file, load_file, loads_text
+from notebookllm.models import Cell, CellType, NotebookDocument
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
@@ -82,7 +83,10 @@ class TestLoadsText:
         assert len(doc.cells) == 1
 
     def test_marimo_format(self):
-        text = "import marimo\napp = marimo.App()\n\n@app.cell\ndef f():\n    x = 1\n    return x,\n"
+        text = (
+            "import marimo\napp = marimo.App()\n\n"
+            "@app.cell\ndef f():\n    x = 1\n    return x,\n"
+        )
         doc = loads_text(text)
         assert doc.source_format == "marimo"
 

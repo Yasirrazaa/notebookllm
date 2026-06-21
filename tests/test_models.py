@@ -1,8 +1,7 @@
 """Tests for notebookllm.models — NotebookDocument, Cell, CellType, OutputMode, CellOutput."""
 import pytest
-from notebookllm.models import (
-    Cell, CellType, CellOutput, NotebookDocument, OutputMode
-)
+
+from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument, OutputMode
 
 
 class TestCellType:

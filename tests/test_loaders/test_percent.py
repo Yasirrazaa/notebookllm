@@ -1,9 +1,8 @@
 """Tests for notebookllm.loaders.percent — percent format (.py with # %% markers)."""
-import pytest
 from pathlib import Path
-from notebookllm.loaders.percent import PercentLoader, PercentDumper
-from notebookllm.models import NotebookDocument, Cell, CellType
 
+from notebookllm.loaders.percent import PercentDumper, PercentLoader
+from notebookllm.models import Cell, CellType, NotebookDocument
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
@@ -137,6 +136,6 @@ class TestPercentDumper:
         result = dumper.dump(doc)
         doc2 = loader.loads(result)
         assert len(doc2.cells) == len(doc.cells)
-        for c1, c2 in zip(doc.cells, doc2.cells):
+        for c1, c2 in zip(doc.cells, doc2.cells, strict=True):
             assert c1.cell_type == c2.cell_type
             assert c1.source.strip() == c2.source.strip()
