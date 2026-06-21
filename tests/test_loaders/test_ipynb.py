@@ -1,12 +1,9 @@
 """Tests for notebookllm.loaders.ipynb — .ipynb loader/dumper."""
 import json
-import os
-import tempfile
 from pathlib import Path
 
-from notebookllm.loaders.ipynb import IpynbLoader, IpynbDumper, STREAMING_THRESHOLD_BYTES
-from notebookllm.models import NotebookDocument, Cell, CellType
-
+from notebookllm.loaders.ipynb import IpynbDumper, IpynbLoader
+from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
@@ -121,7 +118,10 @@ class TestIpynbLoader:
     def test_loads_from_string(self):
         loader = IpynbLoader()
         content = json.dumps({
-            "cells": [{"cell_type": "code", "id": "c1", "source": ["x = 1"], "metadata": {}, "outputs": []}],
+            "cells": [
+                {"cell_type": "code", "id": "c1", "source": ["x = 1"],
+                 "metadata": {}, "outputs": []}
+            ],
             "metadata": {},
             "nbformat": 4,
             "nbformat_minor": 5,
@@ -143,7 +143,7 @@ class TestIpynbLoader:
 
 
 class TestStreaming:
-    """Tests for ijson streaming support — forced via threshold=0 to use streaming on small files."""
+    """Tests for ijson streaming support — forced via threshold=0."""
 
     def test_streaming_matches_nbformat(self):
         """Streaming and nbformat parsing should produce identical results."""
@@ -158,13 +158,13 @@ class TestStreaming:
         assert len(doc_stream.cells) == len(doc_nb.cells)
         assert doc_stream.source_format == doc_nb.source_format
         assert doc_stream.kernel_name == doc_nb.kernel_name
-        for c1, c2 in zip(doc_stream.cells, doc_nb.cells):
+        for c1, c2 in zip(doc_stream.cells, doc_nb.cells, strict=True):
             assert c1.cell_type == c2.cell_type
             assert c1.source == c2.source
             assert c1.execution_count == c2.execution_count
             assert c1.cell_id == c2.cell_id
             assert len(c1.outputs) == len(c2.outputs)
-            for o1, o2 in zip(c1.outputs, c2.outputs):
+            for o1, o2 in zip(c1.outputs, c2.outputs, strict=True):
                 assert o1.output_type == o2.output_type
                 assert o1.content == o2.content
                 assert o1.name == o2.name
@@ -347,7 +347,7 @@ class TestLargeNotebookStreaming:
 
         assert len(doc_stream.cells) == len(doc_nb.cells)
         assert doc_stream.kernel_name == doc_nb.kernel_name
-        for c1, c2 in zip(doc_stream.cells, doc_nb.cells):
+        for c1, c2 in zip(doc_stream.cells, doc_nb.cells, strict=True):
             assert c1.cell_type == c2.cell_type
             assert c1.source == c2.source
             assert c1.execution_count == c2.execution_count
@@ -388,10 +388,8 @@ class TestLargeNotebookStreaming:
     def test_streaming_filesize_triggers_streaming(self, tmp_path):
         """When file exceeds threshold, streaming path should be used."""
         nb_path = _generate_large_notebook(tmp_path, NUM_LARGE_CELLS)
-        file_size = nb_path.stat().st_size
 
-        # Default threshold is 10MB — our generated file should be much smaller
-        # So set an artificially low threshold to force streaming
+        # Default threshold is 10MB — set artificially low to force streaming
         loader = IpynbLoader()
         loader.streaming_threshold = 1  # 1 byte = always stream
         doc = loader.load(nb_path)
@@ -450,7 +448,7 @@ class TestIpynbDumper:
         result = dumper.dump(doc)
         doc2 = loader.loads(result)
         assert len(doc2.cells) == len(doc.cells)
-        for c1, c2 in zip(doc.cells, doc2.cells):
+        for c1, c2 in zip(doc.cells, doc2.cells, strict=True):
             assert c1.cell_type == c2.cell_type
             assert c1.source == c2.source
 
@@ -577,3 +575,51 @@ class TestExtractMetadata:
         result = IpynbLoader._extract_metadata(f)
         assert result["kernelspec"]["name"] == "python3"
         assert result["deep"]["a"]["b"]["c"] == "value"
+
+
+class TestIpynbEdgeCases:
+    def test_load_streaming_fallback_no_ijson(self, tmp_path, monkeypatch):
+        """When ijson is not installed, streaming should fall back to nbformat."""
+        import builtins
+        _real_import = builtins.__import__
+        monkeypatch.setattr("builtins.__import__", lambda name, *a, **kw: (_ for _ in ()).throw(ImportError()) if name == "ijson" else _real_import(name, *a, **kw))
+        loader = IpynbLoader()
+        loader.streaming_threshold = 0
+        doc = loader.load(FIXTURES / "sample.ipynb")
+        assert len(doc.cells) == 3
+
+    def test_metadata_tail_unicode_decode_error(self, tmp_path):
+        """Binary tail data should return empty metadata."""
+        f = tmp_path / "binary_tail.ipynb"
+        import os
+        header = b'{"cells": [{"cell_type":"code","source":"x=1","metadata":{},"outputs":[],"id":"c1"}],"metadata":'
+        f.write_bytes(header + os.urandom(70000) + b', "nbformat": 4}')
+        result = IpynbLoader._extract_metadata(f, file_size=f.stat().st_size)
+        assert result == {}
+
+    def test_dump_raw_cell(self):
+        """Dumping a raw cell should produce valid output."""
+        dumper = IpynbDumper()
+        doc = NotebookDocument()
+        doc.add_cell(Cell(cell_type=CellType.RAW, source="raw content"))
+        result = dumper.dump(doc)
+        data = json.loads(result)
+        assert data["cells"][0]["cell_type"] == "raw"
+
+    def test_dump_error_output(self):
+        """Dumping an error output should preserve traceback."""
+        dumper = IpynbDumper()
+        doc = NotebookDocument()
+        doc.add_cell(Cell(cell_type=CellType.CODE, source="1/0",
+                          outputs=[CellOutput(output_type="error", content="ZeroDivisionError")]))
+        result = json.loads(dumper.dump(doc))
+        assert result["cells"][0]["outputs"][0]["output_type"] == "error"
+
+    def test_dump_unknown_output_fallback(self):
+        """Unknown output types should get a fallback."""
+        dumper = IpynbDumper()
+        doc = NotebookDocument()
+        doc.add_cell(Cell(cell_type=CellType.CODE, source="x",
+                          outputs=[CellOutput(output_type="custom_type", content="data")]))
+        result = json.loads(dumper.dump(doc))
+        assert result["cells"][0]["outputs"][0]["output_type"] == "custom_type"
