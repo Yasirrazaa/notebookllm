@@ -14,7 +14,7 @@ LLMs struggle with raw `.ipynb` files — the verbose JSON structure, metadata, 
 
 ## Features
 
-- **Multi-format support**: Load and save `.ipynb`, percent scripts (`# %%`), Quarto, Markdown, and Marimo formats.
+- **Multi-format support**: Load and save `.ipynb`, percent scripts (`# %%`), Quarto, Markdown, Marimo, and R Markdown formats.
 - **LLM-optimized output**: Three verbosity modes — `minimal` (source only), `standard` (+ execution counts, tags), `full` (+ cell outputs).
 - **CLI tools**: Convert between formats, inspect notebook structure, search cell contents, extract individual cells.
 - **MCP server**: Expose notebook operations as tools for LLMs (session-based, with cell CRUD, search, and execution).
@@ -72,7 +72,7 @@ notebookllm server
 notebookllm server --transport sse
 ```
 
-Output formats: `ipynb`, `percent` (`# %%` markers), `quarto` (`.qmd`), `markdown`, `marimo`.
+Output formats: `ipynb`, `percent` (`# %%` markers), `quarto` (`.qmd`), `markdown`, `marimo`, `rmarkdown` (`.Rmd`).
 
 ## Python API
 
