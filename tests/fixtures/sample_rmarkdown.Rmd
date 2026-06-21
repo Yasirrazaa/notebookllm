@@ -1,0 +1,44 @@
+---
+title: "R Markdown Notebook"
+author: "Test User"
+date: "2023-01-01"
+output: html_document
+---
+
+# Introduction
+
+This is an R Markdown document with mixed R and Python chunks.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Section
+
+Here's an R chunk:
+
+```{r cars}
+summary(cars)
+```
+
+## Python Section
+
+And a Python chunk:
+
+```{python}
+import pandas as pd
+df = pd.DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+df
+```
+
+## Mixed Content
+
+Some markdown text between chunks.
+
+```{r}
+mean(cars$speed)
+```
+
+```{python}
+print("Hello from Python")
+```

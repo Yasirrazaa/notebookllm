@@ -18,7 +18,7 @@ def validate_filepath(filepath: str | Path) -> Path:
 
 def validate_output_format(fmt: str) -> str:
     """Validate output format string."""
-    valid = {"ipynb", "percent", "marimo", "quarto", "markdown"}
+    valid = {"ipynb", "percent", "marimo", "quarto", "markdown", "rmarkdown"}
     if fmt not in valid:
         raise ValueError(f"Invalid format '{fmt}'. Must be one of: {valid}")
     return fmt
@@ -36,4 +36,6 @@ def validate_cell_type(cell_type: str) -> CellType:
     try:
         return CellType(cell_type)
     except ValueError:
-        raise ValueError(f"Invalid cell type '{cell_type}'. Must be one of: code, markdown, raw")
+        raise ValueError(
+            f"Invalid cell type '{cell_type}'. Must be one of: code, markdown, raw"
+        ) from None

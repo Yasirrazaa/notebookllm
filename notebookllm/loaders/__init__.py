@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from notebookllm.utils.detect import detect_format, detect_text_format
 from notebookllm.models import NotebookDocument
+from notebookllm.utils.detect import detect_format, detect_text_format
 
 
 def load_file(filepath: str | Path) -> NotebookDocument:
@@ -27,6 +27,9 @@ def load_file(filepath: str | Path) -> NotebookDocument:
     elif fmt == "markdown":
         from notebookllm.loaders.markdown import MarkdownLoader
         return MarkdownLoader().load(filepath)
+    elif fmt == "rmarkdown":
+        from notebookllm.loaders.rmarkdown import RMarkdownLoader
+        return RMarkdownLoader().load(filepath)
     else:
         raise ValueError(f"Unsupported format: {fmt}")
 
@@ -49,6 +52,9 @@ def dump_file(doc: NotebookDocument, filepath: str | Path, fmt: str | None = Non
     elif fmt == "markdown":
         from notebookllm.loaders.markdown import MarkdownDumper
         MarkdownDumper().dump(doc, filepath)
+    elif fmt == "rmarkdown":
+        from notebookllm.loaders.rmarkdown import RMarkdownDumper
+        RMarkdownDumper().dump(doc, filepath)
     else:
         raise ValueError(f"Unsupported format: {fmt}")
 
@@ -73,5 +79,8 @@ def loads_text(text: str, source_format: str | None = None) -> NotebookDocument:
     elif source_format == "markdown":
         from notebookllm.loaders.markdown import MarkdownLoader
         return MarkdownLoader().loads(text)
+    elif source_format == "rmarkdown":
+        from notebookllm.loaders.rmarkdown import RMarkdownLoader
+        return RMarkdownLoader().loads(text)
     else:
         raise ValueError(f"Unsupported format: {source_format}")

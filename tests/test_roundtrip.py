@@ -6,6 +6,7 @@ from notebookllm.loaders.ipynb import IpynbDumper, IpynbLoader
 from notebookllm.loaders.markdown import MarkdownDumper, MarkdownLoader
 from notebookllm.loaders.percent import PercentDumper, PercentLoader
 from notebookllm.loaders.quarto import QuartoDumper, QuartoLoader
+from notebookllm.loaders.rmarkdown import RMarkdownDumper, RMarkdownLoader
 from notebookllm.models import Cell, CellType, NotebookDocument
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -159,6 +160,29 @@ class TestMarkdownRoundtrip:
         result = dumper.dump(doc)
         doc2 = loader.loads(result)
         assert len(doc2.cells) == 2
+
+
+class TestRMarkdownRoundtrip:
+    """Round-trip RMarkdown format — load → dump → load preserves content."""
+
+    def test_roundtrip_via_dispatch(self, tmp_path):
+        doc = load_file(FIXTURES / "sample_rmarkdown.Rmd")
+        out = tmp_path / "roundtrip.Rmd"
+        dump_file(doc, out)
+        doc2 = load_file(out)
+        assert len(doc2.cells) == len(doc.cells)
+
+    def test_roundtrip_code_and_markdown(self):
+        loader = RMarkdownLoader()
+        dumper = RMarkdownDumper()
+        doc = NotebookDocument()
+        doc.add_cell(Cell(cell_type=CellType.MARKDOWN, source="# Title"))
+        doc.add_cell(Cell(cell_type=CellType.CODE, source="x <- 1", metadata={"language": "r"}))
+        result = dumper.dump(doc)
+        doc2 = loader.loads(result)
+        assert len(doc2.cells) == 2
+        assert doc2.cells[0].source == "# Title"
+        assert doc2.cells[1].source == "x <- 1"
 
 
 def _assert_cells_match(doc1: NotebookDocument, doc2: NotebookDocument) -> None:

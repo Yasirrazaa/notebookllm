@@ -16,7 +16,9 @@ def detect_format(filepath: Path, content: str | None = None) -> str:
         return "ipynb"
     elif ext == ".qmd":
         return "quarto"
-    elif ext in (".md", ".rmd"):
+    elif ext == ".rmd":
+        return "rmarkdown"
+    elif ext == ".md":
         return "markdown"
     elif ext == ".py":
         if content is None and filepath.exists():
@@ -49,6 +51,12 @@ def detect_text_format(content: str) -> str:
         stripped = line.strip()
         if stripped.startswith("import marimo") or stripped.startswith("@app.cell"):
             return "marimo"
+
+    # Check for R Markdown markers
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("```{r}"):
+            return "rmarkdown"
 
     # Check for quarto markers
     for line in lines:
