@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import click
 
-from notebookllm.loaders import load_file, dump_file
-from notebookllm.models import NotebookDocument, OutputMode, CellType
+from notebookllm.loaders import dump_file, load_file
+from notebookllm.models import CellType, NotebookDocument, OutputMode
 
 
 @click.group()
@@ -20,7 +20,7 @@ def _load_or_abort(file: str) -> NotebookDocument:
         return load_file(file)
     except Exception as e:
         click.echo(f"Error: Cannot load {file}: {e}", err=True)
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 @cli.command()
@@ -94,3 +94,21 @@ def server(transport: str):
     """Start MCP server."""
     from notebookllm.mcp.server import main
     main(transport=transport)
+
+
+@cli.command()
+@click.argument("file", type=click.Path(exists=True))
+@click.option("-m", "--mode", type=click.Choice(["minimal", "standard", "full"]), default="minimal",
+              help="Output mode for token estimation")
+@click.option("--breakdown", is_flag=True, help="Show per-cell token breakdown")
+def tokens(file: str, mode: str, breakdown: bool):
+    """Estimate token usage for a notebook."""
+    doc = _load_or_abort(file)
+    from notebookllm.utils.tokenizer import tokenize_notebook
+
+    report = tokenize_notebook(doc, mode=mode)
+    click.echo(report.token_summary)
+    if breakdown and report.cell_tokens:
+        click.echo()
+        for ct in report.cell_tokens:
+            click.echo(f"  [{ct.cell_index:4d}] {ct.cell_type:10s} {ct.tokens:6d}  {ct.preview}")

@@ -84,3 +84,21 @@ class TestErrors:
         bad_file.write_text("not json at all")
         result = runner.invoke(cli, ["inspect", str(bad_file)])
         assert result.exit_code != 0
+
+
+class TestTokens:
+    def test_tokens_basic(self, runner):
+        result = runner.invoke(cli, ["tokens", str(FIXTURES / "sample.ipynb")])
+        assert result.exit_code == 0
+        assert "tokens" in result.output.lower()
+        assert "Total" in result.output
+
+    def test_tokens_with_mode(self, runner):
+        result = runner.invoke(cli, ["tokens", str(FIXTURES / "sample_percent.py"), "-m", "full"])
+        assert result.exit_code == 0
+        assert "tokens" in result.output.lower()
+
+    def test_tokens_with_breakdown(self, runner):
+        result = runner.invoke(cli, ["tokens", str(FIXTURES / "sample.ipynb"), "--breakdown"])
+        assert result.exit_code == 0
+        assert "cell" in result.output.lower() or "Cell" in result.output
