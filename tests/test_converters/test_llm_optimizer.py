@@ -1,5 +1,4 @@
 """Tests for notebookllm.converters.llm_optimizer — configurable output modes."""
-import pytest
 from notebookllm.converters.llm_optimizer import LLMOptimizer
 from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument, OutputMode
 
@@ -10,7 +9,13 @@ def _sample_doc():
         cell_type=CellType.CODE,
         source="import pandas as pd\ndf = pd.read_csv('data.csv')",
         execution_count=1,
-        outputs=[CellOutput(output_type="stream", content="    col1  col2\n0     1     2", name="stdout")],
+        outputs=[
+            CellOutput(
+                output_type="stream",
+                content="    col1  col2\n0     1     2",
+                name="stdout",
+            ),
+        ],
         metadata={"tags": ["setup"]},
     ))
     doc.add_cell(Cell(
@@ -21,7 +26,12 @@ def _sample_doc():
         cell_type=CellType.CODE,
         source="df.describe()",
         execution_count=2,
-        outputs=[CellOutput(output_type="execute_result", content="       col1  col2\ncount   3.0   3.0\nmean    2.0   2.0")],
+        outputs=[
+            CellOutput(
+                output_type="execute_result",
+                content="       col1  col2\ncount   3.0   3.0\nmean    2.0   2.0",
+            ),
+        ],
     ))
     return doc
 
@@ -94,3 +104,62 @@ class TestOptions:
         doc = NotebookDocument()
         result = LLMOptimizer(mode=OutputMode.MINIMAL).optimize(doc)
         assert result == ""
+
+
+class TestFullModeEdgeCases:
+    """Edge case coverage for LLMOptimizer._format_output() output types."""
+
+    def test_display_data_output(self):
+        doc = NotebookDocument()
+        doc.add_cell(Cell(
+            cell_type=CellType.CODE, source="display('hello')",
+            outputs=[CellOutput(output_type="display_data", content={"text/plain": "hello"})],
+        ))
+        result = LLMOptimizer(mode=OutputMode.FULL).optimize(doc)
+        assert "[display]" in result
+        assert "hello" in result
+
+    def test_dict_content_fallback(self):
+        """When MIME bundle has no text/plain key, fallback to str()."""
+        doc = NotebookDocument()
+        doc.add_cell(Cell(
+            cell_type=CellType.CODE, source="display({'text/html': '<b>hi</b>'})",
+            outputs=[CellOutput(output_type="display_data", content={"text/html": "<b>hi</b>"})],
+        ))
+        result = LLMOptimizer(mode=OutputMode.FULL).optimize(doc)
+        assert "[display]" in result
+        assert "<b>hi</b>" in result or "text/html" in result
+
+    def test_single_line_error_output(self):
+        doc = NotebookDocument()
+        doc.add_cell(Cell(
+            cell_type=CellType.CODE, source="1/0",
+            outputs=[CellOutput(output_type="error", content="division by zero")],
+        ))
+        result = LLMOptimizer(mode=OutputMode.FULL).optimize(doc)
+        assert "[error]" in result
+        error_lines = [l for l in result.split("\n") if "[error]" in l]
+        assert len(error_lines) == 1
+
+    def test_multi_line_error_output(self):
+        doc = NotebookDocument()
+        doc.add_cell(Cell(
+            cell_type=CellType.CODE, source="1/0",
+            outputs=[CellOutput(
+                output_type="error",
+                content="Traceback (most recent call last):\n"
+                        "  File \"<cell>\", line 1\n"
+                        "ZeroDivisionError: division by zero"
+            )],
+        ))
+        result = LLMOptimizer(mode=OutputMode.FULL).optimize(doc)
+        assert result.count("[error]") >= 2
+
+    def test_unknown_output_type(self):
+        doc = NotebookDocument()
+        doc.add_cell(Cell(
+            cell_type=CellType.CODE, source="1/0",
+            outputs=[CellOutput(output_type="unknown_type", content="something")],
+        ))
+        result = LLMOptimizer(mode=OutputMode.FULL).optimize(doc)
+        assert "[unknown_type]" in result
