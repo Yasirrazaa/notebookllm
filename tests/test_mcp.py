@@ -122,8 +122,8 @@ class TestToText:
         assert "# exec_count: 2" in text
 
     async def test_to_text_invalid_session(self, app):
-        with pytest.raises(ToolError):
-            await app.call_tool("to_text", {"session_id": "missing", "mode": "minimal"})
+        result = await app.call_tool("to_text", {"session_id": "missing", "mode": "minimal"})
+        assert "not found" in _get_text(result).lower()
 
     async def test_to_text_empty_notebook(self, app, session_manager):
         session_manager.store("empty", NotebookDocument())
@@ -149,8 +149,8 @@ class TestListCells:
         assert "No cells" in _get_text(result)
 
     async def test_list_cells_invalid_session(self, app):
-        with pytest.raises(ToolError):
-            await app.call_tool("list_cells", {"session_id": "missing"})
+        result = await app.call_tool("list_cells", {"session_id": "missing"})
+        assert "not found" in _get_text(result).lower()
 
 
 @pytest.mark.asyncio
@@ -413,3 +413,27 @@ class TestMCPAppCreation:
             assert tool.name
             assert tool.description
             assert len(tool.description) > 5
+
+    async def test_all_tools_handle_missing_session_gracefully(self, session_manager):
+        """Every tool that accepts session_id should return error, not raise, for missing sessions."""
+        app = create_app(session_manager)
+        tools = await app.list_tools()
+        for tool in tools:
+            if "session_id" in tool.inputSchema.get("properties", {}):
+                kwargs = {"session_id": "nonexistent"}
+                props = tool.inputSchema.get("properties", {})
+                for pname in tool.inputSchema.get("required", []):
+                    if pname != "session_id":
+                        ptype = props[pname].get("type", "string")
+                        if ptype == "integer":
+                            kwargs[pname] = 0
+                        elif ptype == "number":
+                            kwargs[pname] = 0.0
+                        else:
+                            kwargs[pname] = "dummy"
+                try:
+                    result = await app.call_tool(tool.name, kwargs)
+                    text = _get_text(result)
+                    assert "not found" in text.lower() or "error" in text.lower()
+                except Exception:
+                    pytest.fail(f"Tool {tool.name} raised exception for missing session")

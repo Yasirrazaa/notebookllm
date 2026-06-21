@@ -2,13 +2,20 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any
 
-from notebookllm.loaders import load_file, dump_file
+from notebookllm.loaders import dump_file, load_file
 from notebookllm.mcp.session import SessionManager
 from notebookllm.models import Cell, CellType, NotebookDocument, OutputMode
 
 MAX_SESSIONS = 100
+
+
+def _get_doc_safe(session_manager: SessionManager, session_id: str) -> NotebookDocument | None:
+    """Get notebook doc, returning None if session missing."""
+    try:
+        return session_manager.get(session_id)
+    except KeyError:
+        return None
 
 
 def create_app(session_manager: SessionManager | None = None):
@@ -16,7 +23,9 @@ def create_app(session_manager: SessionManager | None = None):
     try:
         from mcp.server.fastmcp import FastMCP
     except ImportError:
-        raise ImportError("MCP server requires 'mcp[cli]'. Install with: pip install notebookllm[mcp]")
+        raise ImportError(
+            "MCP server requires 'mcp[cli]'. Install with: pip install notebookllm[mcp]"
+        ) from None
 
     if session_manager is None:
         session_manager = SessionManager()
@@ -39,7 +48,9 @@ def create_app(session_manager: SessionManager | None = None):
     @mcp.tool()
     def save_notebook(session_id: str, output_filepath: str | None = None) -> str:
         """Save notebook to file."""
-        doc = session_manager.get(session_id)
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
         filepath = output_filepath or session_manager.get_filepath(session_id)
         if not filepath:
             return "No filepath specified and none set in session."
@@ -49,14 +60,18 @@ def create_app(session_manager: SessionManager | None = None):
     @mcp.tool()
     def to_text(session_id: str, mode: str = "minimal") -> str:
         """Convert notebook to LLM-optimized text."""
-        doc = session_manager.get(session_id)
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
         output_mode = OutputMode(mode)
         return doc.to_text(mode=output_mode)
 
     @mcp.tool()
     def list_cells(session_id: str) -> str:
         """List all cells with index, type, and preview."""
-        doc = session_manager.get(session_id)
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
         lines = []
         for i, cell in enumerate(doc.cells):
             preview = cell.source[:60].replace("\n", " ")
@@ -68,14 +83,20 @@ def create_app(session_manager: SessionManager | None = None):
     @mcp.tool()
     def get_cell(session_id: str, index: int) -> str:
         """Get a specific cell by index."""
-        doc = session_manager.get(session_id)
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
         cell = doc.get_cell(index)
         return f"Cell [{index}] ({cell.cell_type.value}):\n{cell.source}"
 
     @mcp.tool()
-    def add_cell(session_id: str, source: str, cell_type: str = "code", position: int | None = None) -> str:
+    def add_cell(
+        session_id: str, source: str, cell_type: str = "code", position: int | None = None
+    ) -> str:
         """Add a new cell."""
-        doc = session_manager.get(session_id)
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
         ct = CellType(cell_type)
         cell = Cell(cell_type=ct, source=source)
         doc.add_cell(cell, position=position)
@@ -84,7 +105,9 @@ def create_app(session_manager: SessionManager | None = None):
     @mcp.tool()
     def edit_cell(session_id: str, index: int, source: str, cell_type: str | None = None) -> str:
         """Edit an existing cell."""
-        doc = session_manager.get(session_id)
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
         ct = CellType(cell_type) if cell_type else None
         doc.edit_cell(index, source=source, cell_type=ct)
         return f"Edited cell [{index}]"
@@ -92,7 +115,9 @@ def create_app(session_manager: SessionManager | None = None):
     @mcp.tool()
     def delete_cell(session_id: str, index: int) -> str:
         """Delete a cell by index."""
-        doc = session_manager.get(session_id)
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
         cell = doc.get_cell(index)
         doc.delete_cell(index)
         return f"Deleted cell [{index}] ({cell.cell_type.value})"
@@ -100,14 +125,18 @@ def create_app(session_manager: SessionManager | None = None):
     @mcp.tool()
     def move_cell(session_id: str, from_index: int, to_index: int) -> str:
         """Move a cell from one position to another."""
-        doc = session_manager.get(session_id)
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
         doc.move_cell(from_index, to_index)
         return f"Moved cell from [{from_index}] to [{to_index}]"
 
     @mcp.tool()
     def search_cells(session_id: str, query: str, cell_type: str | None = None) -> str:
         """Search cells by content (case-insensitive)."""
-        doc = session_manager.get(session_id)
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
         ct = CellType(cell_type) if cell_type else None
         results = doc.search(query, cell_type=ct)
         if not results:
@@ -122,11 +151,16 @@ def create_app(session_manager: SessionManager | None = None):
     def execute_cell(session_id: str, index: int, timeout: int = 60) -> str:
         """Execute a code cell via Jupyter kernel (requires notebookllm[execute])."""
         try:
-            import jupyter_client  # noqa: F401
+            import jupyter_client  # type: ignore[import-not-found]  # noqa: F401
         except ImportError:
-            return "Error: notebookllm[execute] not installed. Run: pip install notebookllm[execute]"
+            return (
+                "Error: notebookllm[execute] not installed."
+                " Run: pip install notebookllm[execute]"
+            )
 
-        doc = session_manager.get(session_id)
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
         cell = doc.get_cell(index)
         if cell.cell_type != CellType.CODE:
             return f"Cell [{index}] is not a code cell (it's {cell.cell_type.value})."
@@ -156,7 +190,9 @@ def create_app(session_manager: SessionManager | None = None):
                         msg_type = msg["msg_type"]
                         content = msg["content"]
                         if msg_type == "stream":
-                            outputs.append(f"[{content.get('name', 'stdout')}] {content.get('text', '')}")
+                            out_name = content.get("name", "stdout")
+                            out_text = content.get("text", "")
+                            outputs.append(f"[{out_name}] {out_text}")
                         elif msg_type == "execute_result":
                             data = content.get("data", {})
                             outputs.append(f"[output] {data.get('text/plain', '')}")
