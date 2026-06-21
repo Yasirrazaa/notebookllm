@@ -10,15 +10,20 @@ Supports multiple notebook formats:
 
 __version__ = "3.0.0"
 
-from notebookllm.models import NotebookDocument, Cell, CellType, CellOutput, OutputMode
-from notebookllm.loaders import load_file, dump_file, loads_text
+from notebookllm.loaders import dump_file, load_file, loads_text
+from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument, OutputMode
+from notebookllm.utils.tokenizer import CellTokenInfo, NotebookTokenReport, count_tokens, tokenize_notebook
 
 __all__ = [
     "NotebookDocument",
     "Cell",
     "CellType",
     "CellOutput",
+    "CellTokenInfo",
+    "NotebookTokenReport",
     "OutputMode",
+    "count_tokens",
+    "tokenize_notebook",
     "load_file",
     "dump_file",
     "loads_text",

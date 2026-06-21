@@ -4,6 +4,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from notebookllm.utils.tokenizer import NotebookTokenReport
+
+
 class CellType(Enum):
     """Type of notebook cell."""
 
@@ -141,3 +147,20 @@ class NotebookDocument:
             if q in cell.source.lower():
                 results.append((i, cell))
         return results
+
+    def token_breakdown(self, mode: OutputMode = OutputMode.MINIMAL) -> NotebookTokenReport:
+        """Get token usage breakdown for this notebook.
+
+        Parameters
+        ----------
+        mode:
+            Output verbosity mode. Defaults to ``MINIMAL``.
+
+        Returns
+        -------
+        NotebookTokenReport
+            A report with per-cell and total token counts.
+        """
+        from notebookllm.utils.tokenizer import tokenize_notebook
+
+        return tokenize_notebook(self, mode=mode.value)
