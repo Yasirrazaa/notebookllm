@@ -52,6 +52,7 @@ dev = [
     "mcp[cli]>=1.8.1",
     "pytest>=8.0",
     "pytest-cov>=5.0",
+    "pytest-benchmark>=4.0",
     "ruff>=0.1",
 ]
 
@@ -66,6 +67,9 @@ include = ["notebookllm*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+markers = [
+    "slow: marks tests as slow (e.g., large notebook streaming)",
+]
 
 [tool.ruff]
 line-length = 100
