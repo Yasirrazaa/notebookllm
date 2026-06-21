@@ -41,8 +41,11 @@ stream = [
 yaml = [
     "pyyaml>=6.0",
 ]
+token = [
+    "tiktoken>=0.7",
+]
 all = [
-    "notebookllm[cli,mcp,execute,stream,yaml]",
+    "notebookllm[cli,mcp,execute,stream,yaml,token]",
 ]
 dev = [
     "click>=8.1",
