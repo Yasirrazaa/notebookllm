@@ -1,8 +1,8 @@
 """Tests for notebookllm.loaders.marimo — marimo format (.py with @app.cell)."""
 from pathlib import Path
-from notebookllm.loaders.marimo import MarimoLoader
-from notebookllm.models import NotebookDocument, CellType
 
+from notebookllm.loaders.marimo import MarimoLoader
+from notebookllm.models import CellType, NotebookDocument
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
@@ -106,3 +106,48 @@ class TestMarimoLoader:
         )
         doc = loader.loads(text)
         assert doc.metadata.get("generated_with") == "0.5.0"
+
+
+class TestMarimoEdgeCases:
+    def test_annotated_assignment_generated_with(self):
+        """Marimo v0.8+ uses annotated assignment for __generated_with."""
+        loader = MarimoLoader()
+        text = (
+            "import marimo\n"
+            "__generated_with: str = \"0.8.0\"\n"
+            "app = marimo.App()\n"
+            "\n"
+            "@app.cell\n"
+            "def f():\n"
+            "    x = 1\n"
+            "    return x,\n"
+        )
+        doc = loader.loads(text)
+        assert doc.metadata.get("generated_with") == "0.8.0"
+
+    def test_cell_decorator_without_app(self):
+        """The @cell decorator (without app.) should still be recognized."""
+        loader = MarimoLoader()
+        text = (
+            "import marimo\n"
+            "app = marimo.App()\n"
+            "\n"
+            "@cell\n"
+            "def f():\n"
+            "    x = 1\n"
+            "    return x,\n"
+        )
+        doc = loader.loads(text)
+        assert len(doc.cells) == 1
+
+    def test_empty_marimo_no_syntax_error(self):
+        """Empty string should not cause a SyntaxError."""
+        loader = MarimoLoader()
+        doc = loader.loads("")
+        assert len(doc.cells) == 0
+
+    def test_syntax_error_returns_empty(self):
+        """Invalid Python should return empty notebook."""
+        loader = MarimoLoader()
+        doc = loader.loads("import marimo\n\n@app.cell\ndef (\n")
+        assert len(doc.cells) == 0
