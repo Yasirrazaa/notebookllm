@@ -48,7 +48,9 @@ class RMarkdownLoader(BaseLoader):
             lang = match.group(1).lower()  # normalize to lowercase
             code = match.group(2).strip()
             if lang in ("r", "python"):
-                cells.append(Cell(cell_type=CellType.CODE, source=code, metadata={"language": lang}))
+                cells.append(
+                    Cell(cell_type=CellType.CODE, source=code, metadata={"language": lang})
+                )
             else:
                 # Treat unknown languages as raw cells
                 cells.append(Cell(cell_type=CellType.RAW, source=code, metadata={"language": lang}))

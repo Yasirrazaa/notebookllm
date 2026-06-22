@@ -22,7 +22,6 @@ class TestTokenReduction:
 
     @staticmethod
     def _count_raw_tokens(doc) -> int:
-        import json
 
         from notebookllm.loaders.ipynb import IpynbDumper
 

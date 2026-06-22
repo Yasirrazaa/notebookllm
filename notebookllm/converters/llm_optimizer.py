@@ -1,7 +1,7 @@
 """LLM Optimizer — converts NotebookDocument to LLM-optimized text."""
 from __future__ import annotations
 
-from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument, OutputMode
+from notebookllm.models import Cell, CellOutput, NotebookDocument, OutputMode
 
 
 class LLMOptimizer:
@@ -69,6 +69,8 @@ class LLMOptimizer:
             return f"# [display] {content}"
         elif output.output_type == "error":
             lines_content = content.split("\n")
-            return "\n".join(f"# [error] {l}" for l in lines_content) if len(lines_content) > 1 else f"# [error] {content}"
+            if len(lines_content) > 1:
+                return "\n".join(f"# [error] {line}" for line in lines_content)
+            return f"# [error] {content}"
         else:
             return f"# [{output.output_type}] {content}"

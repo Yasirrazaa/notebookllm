@@ -138,7 +138,7 @@ class TestFullModeEdgeCases:
         ))
         result = LLMOptimizer(mode=OutputMode.FULL).optimize(doc)
         assert "[error]" in result
-        error_lines = [l for l in result.split("\n") if "[error]" in l]
+        error_lines = [line for line in result.split("\n") if "[error]" in line]
         assert len(error_lines) == 1
 
     def test_multi_line_error_output(self):

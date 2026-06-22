@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from notebookllm.loaders.base import BaseLoader, BaseDumper
+from notebookllm.loaders.base import BaseDumper, BaseLoader
 from notebookllm.models import Cell, CellType, NotebookDocument
 
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -22,8 +22,8 @@ class QuartoLoader(BaseLoader):
         return self.loads(content)
 
     def loads(self, content: str) -> NotebookDocument:
-        cells = []
-        metadata = {}
+        cells: list[Cell] = []
+        metadata: dict[str, object] = {}
 
         # Parse YAML frontmatter
         fm_match = FRONTMATTER_RE.match(content)
@@ -58,7 +58,7 @@ class QuartoLoader(BaseLoader):
                     cleaned_lines.append(cline)
             code = "\n".join(cleaned_lines).strip()
 
-            cell_metadata = {}
+            cell_metadata: dict[str, object] = {}
             if cell_options:
                 cell_metadata["quarto_options"] = cell_options
             cell_metadata["language"] = lang

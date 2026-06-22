@@ -582,7 +582,11 @@ class TestIpynbEdgeCases:
         """When ijson is not installed, streaming should fall back to nbformat."""
         import builtins
         _real_import = builtins.__import__
-        monkeypatch.setattr("builtins.__import__", lambda name, *a, **kw: (_ for _ in ()).throw(ImportError()) if name == "ijson" else _real_import(name, *a, **kw))
+        def _mock_import(name, *a, **kw):
+            if name == "ijson":
+                raise ImportError()
+            return _real_import(name, *a, **kw)
+        monkeypatch.setattr("builtins.__import__", _mock_import)
         loader = IpynbLoader()
         loader.streaming_threshold = 0
         doc = loader.load(FIXTURES / "sample.ipynb")
@@ -592,7 +596,10 @@ class TestIpynbEdgeCases:
         """Binary tail data should return empty metadata."""
         f = tmp_path / "binary_tail.ipynb"
         import os
-        header = b'{"cells": [{"cell_type":"code","source":"x=1","metadata":{},"outputs":[],"id":"c1"}],"metadata":'
+        header = (
+            b'{"cells": [{"cell_type":"code","source":"x=1","metadata":{},'
+            b'"outputs":[],"id":"c1"}],"metadata":'
+        )
         f.write_bytes(header + os.urandom(70000) + b', "nbformat": 4}')
         result = IpynbLoader._extract_metadata(f, file_size=f.stat().st_size)
         assert result == {}

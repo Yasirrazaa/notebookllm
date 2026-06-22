@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from notebookllm.loaders.base import BaseLoader, BaseDumper
+from notebookllm.loaders.base import BaseDumper, BaseLoader
 from notebookllm.models import Cell, CellType, NotebookDocument
 
 CODE_BLOCK_RE = re.compile(r"```(\w+)\s*\n(.*?)```", re.DOTALL)
@@ -22,8 +22,8 @@ class MarkdownLoader(BaseLoader):
         return self.loads(content)
 
     def loads(self, content: str) -> NotebookDocument:
-        cells = []
-        metadata = {}
+        cells: list[Cell] = []
+        metadata: dict[str, object] = {}
 
         # Parse YAML frontmatter (same as quarto loader)
         fm_match = FRONTMATTER_RE.match(content)

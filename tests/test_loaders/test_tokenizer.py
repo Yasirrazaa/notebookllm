@@ -1,8 +1,12 @@
 """Tests for notebookllm.utils.tokenizer — token counting utilities."""
-import pytest
 
 from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument
-from notebookllm.utils.tokenizer import CellTokenInfo, NotebookTokenReport, count_tokens, tokenize_notebook
+from notebookllm.utils.tokenizer import (
+    CellTokenInfo,
+    NotebookTokenReport,
+    count_tokens,
+    tokenize_notebook,
+)
 
 
 class TestCountTokens:

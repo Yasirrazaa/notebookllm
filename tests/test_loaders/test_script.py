@@ -20,8 +20,8 @@ class TestScriptDumper:
         doc.add_cell(Cell(cell_type=CellType.MARKDOWN, source="# Title\n\nDescription"))
         result = dumper.dump(doc)
         lines = result.split("\n")
-        comment_lines = [l for l in lines if l.startswith("#")]
-        assert any("Title" in l for l in comment_lines)
+        comment_lines = [line for line in lines if line.startswith("#")]
+        assert any("Title" in line for line in comment_lines)
 
     def test_dump_to_file(self, tmp_path):
         dumper = ScriptDumper()

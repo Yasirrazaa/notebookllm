@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from notebookllm.loaders.base import BaseLoader, BaseDumper
+from notebookllm.loaders.base import BaseDumper, BaseLoader
 from notebookllm.models import Cell, CellType, NotebookDocument
 
 CELL_MARKER = re.compile(r"^#\s*%%\s*(?:\[(\w+)\])?\s*$")

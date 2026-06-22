@@ -26,7 +26,7 @@ class TestDetectFormat:
     def test_rmd_extension(self, tmp_path):
         f = tmp_path / "notebook.rmd"
         f.write_text("# Title")
-        assert detect_format(f) == "markdown"
+        assert detect_format(f) == "rmarkdown"
 
     def test_py_percent_format(self, tmp_path):
         f = tmp_path / "notebook.py"
@@ -84,7 +84,6 @@ def test_py_read_error_fallback(tmp_path, monkeypatch):
     """If reading .py file fails, fallback to treating as percent."""
     f = tmp_path / "script.py"
     f.write_text("import marimo\n")
-    original_read_text = f.read_text
     def failing_read(*args, **kwargs):
         raise OSError("read failed")
     monkeypatch.setattr(Path, "read_text", failing_read)

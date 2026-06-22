@@ -1,4 +1,4 @@
-"""Tests for notebookllm.loaders.rmarkdown — R Markdown format (.Rmd with ```{r} and ```{python} blocks)."""
+"""Tests for notebookllm.loaders.rmarkdown — R Markdown format (.Rmd)."""
 from pathlib import Path
 
 from notebookllm.loaders.rmarkdown import RMarkdownDumper, RMarkdownLoader
@@ -24,7 +24,10 @@ class TestRMarkdownLoader:
 
     def test_loads_from_string(self):
         loader = RMarkdownLoader()
-        text = '---\ntitle: "Test"\n---\n\n# Title\n\n```{r}\nx <- 1\n```\n\n```{python}\ny = 2\n```\n'
+        text = (
+            '---\ntitle: "Test"\n---\n\n# Title\n\n'
+            '```{r}\nx <- 1\n```\n\n```{python}\ny = 2\n```\n'
+        )
         doc = loader.loads(text)
         assert len(doc.cells) == 3  # markdown, r, python
         assert doc.cells[0].cell_type == CellType.MARKDOWN
@@ -48,7 +51,10 @@ class TestRMarkdownLoader:
 
     def test_load_multiple_code_blocks(self):
         loader = RMarkdownLoader()
-        text = '---\ntitle: "Test"\n---\n\n```{r}\na <- 1\n```\n\n```{r}\nb <- 2\n```\n\n```{python}\nc = 3\n```\n'
+        text = (
+            '---\ntitle: "Test"\n---\n\n```{r}\na <- 1\n```\n\n'
+            '```{r}\nb <- 2\n```\n\n```{python}\nc = 3\n```\n'
+        )
         doc = loader.loads(text)
         assert len(doc.cells) == 3
         assert all(c.cell_type == CellType.CODE for c in doc.cells)
@@ -59,7 +65,10 @@ class TestRMarkdownLoader:
     def test_load_parses_frontmatter(self):
         """RMarkdown files with YAML frontmatter should extract metadata."""
         loader = RMarkdownLoader()
-        text = '---\ntitle: "My Doc"\nauthor: "Test"\ndate: "2023-01-01"\n---\n\n# Hello\n\n```{r}\nx <- 1\n```\n'
+        text = (
+            '---\ntitle: "My Doc"\nauthor: "Test"\n'
+            'date: "2023-01-01"\n---\n\n# Hello\n\n```{r}\nx <- 1\n```\n'
+        )
         doc = loader.loads(text)
         assert doc.metadata.get("title") == "My Doc"
         assert doc.metadata.get("author") == "Test"
@@ -106,7 +115,11 @@ class TestRMarkdownLoader:
     def test_load_mixed_chunks(self):
         """Handle mixed R and Python chunks in any order."""
         loader = RMarkdownLoader()
-        text = '---\ntitle: "Mixed"\n---\n\n```{r}\nlibrary(ggplot2)\n```\n\nSome markdown.\n\n```{python}\nimport sys\n```\n\n```{r}\nsummary(1:5)\n```\n'
+        text = (
+            '---\ntitle: "Mixed"\n---\n\n```{r}\nlibrary(ggplot2)\n```\n'
+            '\nSome markdown.\n\n```{python}\nimport sys\n```\n\n'
+            '```{r}\nsummary(1:5)\n```\n'
+        )
         doc = loader.loads(text)
         assert len(doc.cells) == 4
         # [0] R code, [1] markdown, [2] Python code, [3] R code
@@ -122,7 +135,9 @@ class TestRMarkdownDumper:
         doc = NotebookDocument()
         doc.add_cell(Cell(cell_type=CellType.CODE, source="x <- 1", metadata={"language": "r"}))
         doc.add_cell(Cell(cell_type=CellType.MARKDOWN, source="# Header"))
-        doc.add_cell(Cell(cell_type=CellType.CODE, source="print('hello')", metadata={"language": "python"}))
+        doc.add_cell(
+            Cell(cell_type=CellType.CODE, source="print('hello')", metadata={"language": "python"})
+        )
         result = dumper.dump(doc)
         # Should contain R and Python chunk markers
         assert "```{r}" in result

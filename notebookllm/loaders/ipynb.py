@@ -8,7 +8,7 @@ from pathlib import Path
 import nbformat
 from nbformat.notebooknode import NotebookNode
 
-from notebookllm.loaders.base import BaseLoader, BaseDumper
+from notebookllm.loaders.base import BaseDumper, BaseLoader
 from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument
 
 # Default threshold for streaming (10 MB). Files larger than this use ijson streaming.
@@ -40,7 +40,7 @@ class IpynbLoader(BaseLoader):
         Falls back to nbformat if ijson is not installed.
         """
         try:
-            import ijson
+            import ijson  # type: ignore[import-untyped]
         except ImportError:
             # Fall back to nbformat if ijson is not available
             nb = nbformat.read(str(filepath), as_version=4)
@@ -176,16 +176,16 @@ class IpynbLoader(BaseLoader):
                     if isinstance(mime_value, list):
                         mime_value = "".join(mime_value)
                     mime_bundle[mime_key] = mime_value
-                content = mime_bundle
+                return CellOutput(output_type=output_type, content=mime_bundle)
             else:
-                content = data.get("text/plain", str(data))
-                if isinstance(content, list):
-                    content = "".join(content)
-            return CellOutput(output_type=output_type, content=content)
+                text_content = data.get("text/plain", str(data))
+                if isinstance(text_content, list):
+                    text_content = "".join(text_content)
+                return CellOutput(output_type=output_type, content=text_content)
         elif output_type == "error":
             traceback = out.get("traceback", [])
-            content = "\n".join(traceback) if isinstance(traceback, list) else str(traceback)
-            return CellOutput(output_type=output_type, content=content)
+            err_content = "\n".join(traceback) if isinstance(traceback, list) else str(traceback)
+            return CellOutput(output_type=output_type, content=err_content)
         else:
             return CellOutput(output_type=output_type, content=str(out))
 

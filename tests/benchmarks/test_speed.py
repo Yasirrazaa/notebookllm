@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from notebookllm.loaders import dump_file, load_file
+from notebookllm.loaders import load_file
 from notebookllm.models import OutputMode
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"

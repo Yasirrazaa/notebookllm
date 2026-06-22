@@ -1,7 +1,7 @@
 """Session manager for MCP server — supports multi-user notebook editing."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from notebookllm.models import NotebookDocument
 
@@ -16,7 +16,7 @@ class Session:
 class SessionManager:
     """Manages notebook sessions for MCP connections."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._sessions: dict[str, Session] = {}
 
     def store(self, session_id: str, doc: NotebookDocument, filepath: str | None = None) -> None:
