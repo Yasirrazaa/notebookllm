@@ -42,7 +42,7 @@ class PercentLoader(BaseLoader):
             if match:
                 has_markers = True
                 if current_lines or cells:
-                    source = "".join(current_lines).rstrip("\n")
+                    source = _make_source(current_lines, current_type)
                     cells.append(Cell(cell_type=current_type, source=source))
                 cell_type_str = match.group(1) or "code"
                 try:
@@ -54,7 +54,7 @@ class PercentLoader(BaseLoader):
                 current_lines.append(line)
 
         if current_lines:
-            source = "".join(current_lines).rstrip("\n")
+            source = _make_source(current_lines, current_type)
             cells.append(Cell(cell_type=current_type, source=source))
 
         if not has_markers and content.strip():
@@ -75,6 +75,31 @@ def _toggle_on_triple(text: str, delimiter: str, current: bool) -> bool:
     return current
 
 
+def _strip_comment_prefix(line: str) -> str:
+    """Strip leading '# ' (or bare '#') from a markdown cell line in percent format.
+
+    Percent format encodes markdown cells as Python comments (each line starts with
+    '# ' or '#' on empty lines). This strips one level of that encoding."""
+    if line.startswith("# "):
+        return line[2:]
+    if line.startswith("#") and not line.startswith("##"):
+        # Bare '# ' or just '#' — strip one character
+        return line[1:]
+    return line
+
+
+def _make_source(lines: list[str], cell_type: CellType) -> str:
+    """Build cell source from raw percent-format lines.
+
+    For markdown cells, strips the '# ' comment prefix from each line.
+    For other cell types (code, raw), joins lines as-is.
+    """
+    if cell_type == CellType.MARKDOWN:
+        stripped = [_strip_comment_prefix(l) for l in lines]
+        return "".join(stripped).rstrip("\n")
+    return "".join(lines).rstrip("\n")
+
+
 class PercentDumper(BaseDumper):
     """Dump to percent format .py files."""
 
@@ -83,7 +108,16 @@ class PercentDumper(BaseDumper):
         for cell in doc.cells:
             marker = f"# %% [{cell.cell_type.value}]"
             source = cell.source.rstrip("\n")
-            parts.append(f"{marker}\n{source}")
+            if cell.cell_type == CellType.MARKDOWN:
+                # Encode markdown lines as Python comments with "# " prefix
+                md_lines = source.split("\n")
+                encoded = "\n".join(
+                    f"# {line}" if line else "#"
+                    for line in md_lines
+                )
+                parts.append(f"{marker}\n{encoded}")
+            else:
+                parts.append(f"{marker}\n{source}")
 
         result = "\n\n".join(parts).rstrip() + "\n"
         if filepath:
