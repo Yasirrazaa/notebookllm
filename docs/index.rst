@@ -1,17 +1,22 @@
-.. notebookllm documentation master file, created by
-   sphinx-quickstart on Sat Dec 28 19:07:54 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 notebookllm documentation
 =========================
 
-.. automodule:: notebookllm.notebookllm
+.. automodule:: notebookllm
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: cli
+.. automodule:: notebookllm.models
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: notebookllm.loaders
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: notebookllm.cli.commands
    :members:
    :undoc-members:
    :show-inheritance:
