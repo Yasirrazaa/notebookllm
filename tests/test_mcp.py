@@ -363,15 +363,23 @@ class TestSaveNotebook:
 class TestExecuteCell:
     """Tests for the execute_cell MCP tool."""
 
-    async def test_execute_not_installed(self, app_with_session):
+    async def test_execute_not_installed(self, app_with_session, monkeypatch):
         """Should return error when jupyter_client is not installed."""
         app, _ = app_with_session
+        real_import = __import__
+
+        def mock_import(name, *args, **kwargs):
+            if name == "jupyter_client":
+                raise ImportError("simulated not installed")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.__import__", mock_import)
         result = await app.call_tool("execute_cell", {
             "session_id": "test-session",
             "index": 0,
         })
         text = _get_text(result)
-        assert "not installed" in text.lower() or "execution error" in text.lower()
+        assert "not installed" in text.lower()
 
     async def test_execute_not_code_cell(self, app_with_session):
         """Should fail gracefully when cell is markdown."""
@@ -381,7 +389,7 @@ class TestExecuteCell:
             "index": 1,  # index 1 is markdown
         })
         text = _get_text(result)
-        assert "not a code cell" in text.lower() or "not installed" in text.lower()
+        assert "not a code cell" in text.lower()
 
 
 @pytest.mark.asyncio
@@ -404,7 +412,7 @@ class TestMCPAppCreation:
         assert "search_cells" in tool_names
         assert "save_notebook" in tool_names
         assert "execute_cell" in tool_names
-        assert len(tool_names) == 11
+        assert len(tool_names) == 12
 
     async def test_list_tools_output(self, session_manager):
         app = create_app(session_manager)
@@ -415,7 +423,7 @@ class TestMCPAppCreation:
             assert len(tool.description) > 5
 
     async def test_all_tools_handle_missing_session_gracefully(self, session_manager):
-        """Every tool that accepts session_id should return error, not raise, for missing sessions."""
+        """Every tool with session_id should return error, not raise, for missing sessions."""
         app = create_app(session_manager)
         tools = await app.list_tools()
         for tool in tools:
@@ -437,3 +445,29 @@ class TestMCPAppCreation:
                     assert "not found" in text.lower() or "error" in text.lower()
                 except Exception:
                     pytest.fail(f"Tool {tool.name} raised exception for missing session")
+
+
+@pytest.mark.asyncio
+class TestMCPTokenTool:
+    """Tests for the count_tokens MCP tool."""
+
+    async def test_count_tokens(self, app_with_session):
+        app, _ = app_with_session
+        result = await app.call_tool("count_tokens", {
+            "session_id": "test-session",
+        })
+        text = _get_text(result)
+        assert "tokens" in text.lower()
+
+    async def test_count_tokens_missing_session(self, app):
+        result = await app.call_tool("count_tokens", {"session_id": "missing"})
+        assert "not found" in _get_text(result).lower()
+
+    async def test_count_tokens_with_mode(self, app_with_session):
+        app, _ = app_with_session
+        result = await app.call_tool("count_tokens", {
+            "session_id": "test-session",
+            "mode": "full",
+        })
+        text = _get_text(result)
+        assert "tokens" in text.lower()

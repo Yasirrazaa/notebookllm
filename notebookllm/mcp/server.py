@@ -148,6 +148,16 @@ def create_app(session_manager: SessionManager | None = None):
         return "\n".join(lines)
 
     @mcp.tool()
+    def count_tokens(session_id: str, mode: str = "minimal") -> str:
+        """Count tokens in the session notebook (modes: minimal, standard, full)."""
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
+        from notebookllm.utils.tokenizer import tokenize_notebook
+        report = tokenize_notebook(doc, mode=mode)
+        return report.token_summary
+
+    @mcp.tool()
     def execute_cell(session_id: str, index: int, timeout: int = 60) -> str:
         """Execute a code cell via Jupyter kernel (requires notebookllm[execute])."""
         try:

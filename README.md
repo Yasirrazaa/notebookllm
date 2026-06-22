@@ -203,6 +203,7 @@ uvx notebookllm-server
 | `move_cell` | Move a cell from one position to another |
 | `search_cells` | Search cells by content (case-insensitive) |
 | `execute_cell` | Execute a code cell via Jupyter kernel (requires `[execute]`) |
+| `count_tokens` | Count tokens in the session notebook (modes: minimal, standard, full) |
 
 ## Development
 
