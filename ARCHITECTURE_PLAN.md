@@ -1055,7 +1055,7 @@ class KernelPool:
 
 For testing without a real kernel: mock `KernelManager` by subclassing or using `unittest.mock.patch`.
 
-### Task 3.2: Semantic output summarization — DataFrame detection (RED → GREEN)
+### Task 3.2: Semantic output summarization — DataFrame detection (COMPLETED)
 
 **RED** — `tests/test_converters/test_llm_optimizer.py`
 

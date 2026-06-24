@@ -163,3 +163,49 @@ class TestFullModeEdgeCases:
         ))
         result = LLMOptimizer(mode=OutputMode.FULL).optimize(doc)
         assert "[unknown_type]" in result
+
+class TestSummarization:
+    def test_summarize_dataframe_output(self):
+        """DataFrame ASCII tables are replaced with schema summary."""
+        optimizer = LLMOptimizer(mode=OutputMode.FULL, summarize_outputs=True)
+        output = CellOutput(
+            output_type="execute_result",
+            content={
+                "text/plain": "   age  revenue\n0   25    50000\n1   30    60000\n...",
+                "text/html": "<table>...</table>"
+            }
+        )
+        cell = Cell(cell_type=CellType.CODE, source="df.head()",
+                    outputs=[output], execution_count=1)
+        doc = NotebookDocument(cells=[cell])
+        result = optimizer.optimize(doc)
+        assert "DataFrame" in result
+        assert "age" in result  # column name preserved
+        assert "50000" not in result  # values removed
+
+    def test_summarize_long_traceback(self):
+        """Full tracebacks are replaced with ErrorType: message."""
+        optimizer = LLMOptimizer(mode=OutputMode.FULL, summarize_outputs=True)
+        output = CellOutput(
+            output_type="error",
+            content="Traceback (most recent call last):\n  File \"<stdin>\", line 1\nZeroDivisionError: division by zero"
+        )
+        cell = Cell(cell_type=CellType.CODE, source="1/0", outputs=[output])
+        doc = NotebookDocument(cells=[cell])
+        result = optimizer.optimize(doc)
+        assert "ZeroDivisionError" in result
+        assert "Traceback" not in result
+
+    def test_truncate_long_string(self):
+        """Strings over 500 chars are truncated with count."""
+        optimizer = LLMOptimizer(mode=OutputMode.FULL, summarize_outputs=True)
+        output = CellOutput(
+            output_type="stream",
+            content="x" * 600,
+            name="stdout"
+        )
+        cell = Cell(cell_type=CellType.CODE, source="print('x'*600)", outputs=[output])
+        doc = NotebookDocument(cells=[cell])
+        result = optimizer.optimize(doc)
+        assert "truncated" in result
+        assert len(result) < 600
