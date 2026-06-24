@@ -133,9 +133,10 @@ def server(transport: str):
 def tokens(file: str, mode: str, breakdown: bool):
     """Estimate token usage for a notebook."""
     doc = _load_or_abort(file)
-    from notebookllm.utils.tokenizer import tokenize_notebook
     from rich.console import Console
     from rich.table import Table
+
+    from notebookllm.utils.tokenizer import tokenize_notebook
     console = Console()
 
     report = tokenize_notebook(doc, mode=mode)

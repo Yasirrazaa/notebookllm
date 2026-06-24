@@ -1,4 +1,4 @@
-"""Markdown format loader/dumper — .md files with ```python blocks."""
+"""Markdown format loader/dumper — .md files with Python code blocks."""
 from __future__ import annotations
 
 import re
@@ -46,9 +46,9 @@ class MarkdownLoader(BaseLoader):
             lang = match.group(1)
             code = match.group(2).strip()
             if lang in ("python", "r", "julia", "javascript", "ts", "typescript"):
-                cells.append(Cell(cell_type=CellType.CODE, source=code))
+                cells.append(Cell(cell_type=CellType.CODE, source=code, language=lang))
             else:
-                cells.append(Cell(cell_type=CellType.RAW, source=code))
+                cells.append(Cell(cell_type=CellType.RAW, source=code, language=lang))
 
             last_end = match.end()
 
@@ -67,7 +67,7 @@ class MarkdownDumper(BaseDumper):
         parts = []
         for cell in doc.cells:
             if cell.cell_type == CellType.CODE:
-                lang = cell.metadata.get("language", "python") if cell.metadata else "python"
+                lang = cell.language or (cell.metadata.get("language", "python") if cell.metadata else "python")
                 parts.append(f"```{lang}")
                 parts.append(cell.source)
                 parts.append("```")

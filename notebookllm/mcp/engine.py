@@ -29,7 +29,6 @@ class KernelPool:
         self._kernels: dict[str, tuple[Any, Any]] = {}
 
     def _sync_start_kernel(self, session_id: str, kernel_name: str) -> str:
-        import jupyter_client
         from jupyter_client import KernelManager
 
         if session_id in self._kernels:
@@ -158,7 +157,6 @@ class KernelPool:
     def list_kernels(self) -> list[dict]:
         """List available kernels from jupyter kernelspec."""
         try:
-            import jupyter_client
             from jupyter_client.kernelspec import KernelSpecManager
             ksm = KernelSpecManager()
             specs = ksm.get_all_specs()

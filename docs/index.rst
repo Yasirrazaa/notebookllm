@@ -1,25 +1,13 @@
 notebookllm documentation
 =========================
 
-.. automodule:: notebookllm
-   :members:
-   :undoc-members:
-   :show-inheritance:
+Convert, inspect, and optimize Jupyter notebooks for Large Language Models.
 
-.. automodule:: notebookllm.models
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. toctree::
+   :maxdepth: 2
+   :caption: API Reference
 
-.. automodule:: notebookllm.loaders
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: notebookllm.cli.commands
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   api
 
 Indices and tables
 ==================

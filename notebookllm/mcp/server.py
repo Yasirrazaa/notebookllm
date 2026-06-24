@@ -282,9 +282,11 @@ def create_app(session_manager: SessionManager | None = None):
         functions = set()
         for c in code_cells:
             for match in re.finditer(r"^(?:from\s+([a-zA-Z0-9_.]+).*import|import\s+([a-zA-Z0-9_., ]+))", c.source, re.MULTILINE):
-                if match.group(1): imports.add(match.group(1).split(".")[0])
+                if match.group(1):
+                    imports.add(match.group(1).split(".")[0])
                 elif match.group(2):
-                    for m in match.group(2).split(","): imports.add(m.strip().split(".")[0])
+                    for m in match.group(2).split(","):
+                        imports.add(m.strip().split(".")[0])
             for match in re.finditer(r"^def\s+([a-zA-Z0-9_]+)\s*\(", c.source, re.MULTILINE):
                 functions.add(match.group(1))
                 
@@ -304,8 +306,10 @@ def create_app(session_manager: SessionManager | None = None):
         """Compare the minimal text representation of two notebook sessions."""
         doc1 = _get_doc_safe(session_manager, session_id1)
         doc2 = _get_doc_safe(session_manager, session_id2)
-        if not doc1: return f"Session not found: {session_id1}"
-        if not doc2: return f"Session not found: {session_id2}"
+        if not doc1:
+            return f"Session not found: {session_id1}"
+        if not doc2:
+            return f"Session not found: {session_id2}"
         import difflib
         text1 = doc1.to_text(mode=OutputMode.MINIMAL).splitlines(keepends=True)
         text2 = doc2.to_text(mode=OutputMode.MINIMAL).splitlines(keepends=True)

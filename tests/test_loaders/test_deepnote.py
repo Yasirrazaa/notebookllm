@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import textwrap
-import uuid
-from pathlib import Path
 
 import pytest
 import yaml
@@ -327,7 +325,7 @@ class TestDeepnoteIntegration:
         doc = DeepnoteLoader().loads(sample_yaml)
         yaml_out = DeepnoteDumper().dump(doc)
         doc2 = DeepnoteLoader().loads(yaml_out)
-        for i, (c1, c2) in enumerate(zip(doc.cells, doc2.cells)):
+        for i, (c1, c2) in enumerate(zip(doc.cells, doc2.cells, strict=False)):
             assert c1.source.strip() == c2.source.strip(), f"Cell {i} content differs"
 
     def test_round_trip_all_block_types(self):

@@ -1,4 +1,4 @@
-"""R Markdown format loader/dumper — .Rmd files with ```{r} and ```{python} blocks."""
+"""R Markdown format loader/dumper — .Rmd files with R and Python code blocks."""
 from __future__ import annotations
 
 import re
@@ -49,11 +49,21 @@ class RMarkdownLoader(BaseLoader):
             code = match.group(2).strip()
             if lang in ("r", "python"):
                 cells.append(
-                    Cell(cell_type=CellType.CODE, source=code, metadata={"language": lang})
+                    Cell(
+                        cell_type=CellType.CODE,
+                        source=code,
+                        language=lang,
+                        metadata={"language": lang},
+                    )
                 )
             else:
                 # Treat unknown languages as raw cells
-                cells.append(Cell(cell_type=CellType.RAW, source=code, metadata={"language": lang}))
+                cells.append(Cell(
+                    cell_type=CellType.RAW,
+                    source=code,
+                    language=lang,
+                    metadata={"language": lang},
+                ))
 
             last_end = match.end()
 
@@ -72,7 +82,7 @@ class RMarkdownDumper(BaseDumper):
         parts = []
         for cell in doc.cells:
             if cell.cell_type == CellType.CODE:
-                lang = cell.metadata.get("language", "python") if cell.metadata else "python"
+                lang = cell.language or (cell.metadata.get("language", "python") if cell.metadata else "python")
                 parts.append(f"```{{{lang}}}")
                 parts.append(cell.source)
                 parts.append("```")

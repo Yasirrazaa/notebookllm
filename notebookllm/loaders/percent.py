@@ -95,7 +95,7 @@ def _make_source(lines: list[str], cell_type: CellType) -> str:
     For other cell types (code, raw), joins lines as-is.
     """
     if cell_type == CellType.MARKDOWN:
-        stripped = [_strip_comment_prefix(l) for l in lines]
+        stripped = [_strip_comment_prefix(line) for line in lines]
         return "".join(stripped).rstrip("\n")
     return "".join(lines).rstrip("\n")
 

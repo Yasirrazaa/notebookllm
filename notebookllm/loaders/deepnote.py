@@ -1,7 +1,6 @@
 """Deepnote YAML loader/dumper — .deepnote project format."""
 from __future__ import annotations
 
-import copy
 import hashlib
 import uuid
 from pathlib import Path
@@ -11,7 +10,6 @@ import yaml
 
 from notebookllm.loaders.base import BaseDumper, BaseLoader
 from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument
-
 
 # Standard Deepnote block types and their mapping to CellType
 DEEPNOTE_TYPE_MAP: dict[str, CellType] = {

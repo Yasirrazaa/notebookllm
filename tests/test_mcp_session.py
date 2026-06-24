@@ -1,4 +1,5 @@
 """Tests for notebookllm.mcp.session — session management."""
+
 import pytest
 
 from notebookllm.mcp.session import SessionManager
@@ -6,8 +7,9 @@ from notebookllm.models import Cell, CellType, NotebookDocument
 
 
 @pytest.fixture
-def manager():
-    return SessionManager()
+def manager(tmp_path):
+    db_path = tmp_path / "test_sessions.db"
+    return SessionManager(db_path=db_path)
 
 
 class TestSessionManager:
@@ -66,3 +68,35 @@ class TestSessionManager:
     def test_get_filepath_nonexistent(self, manager):
         with pytest.raises(KeyError, match="Session not found"):
             manager.get_filepath("missing")
+
+
+class TestSQLitePersistence:
+    """Tests that sessions persist across SessionManager instances."""
+
+    def test_survives_manager_recreation(self, tmp_path):
+        db_path = tmp_path / "persist.db"
+        m1 = SessionManager(db_path=db_path)
+        doc1 = NotebookDocument()
+        doc1.add_cell(Cell(cell_type=CellType.CODE, source="x = 1"))
+        m1.store("s1", doc1, filepath="/tmp/test.ipynb")
+
+        # Destroy m1, create m2 pointing at same DB
+        del m1
+        m2 = SessionManager(db_path=db_path)
+
+        assert "s1" in m2.list_sessions()
+        restored = m2.get("s1")
+        assert restored.cells[0].source == "x = 1"
+
+    def test_mutiple_sessions(self, tmp_path):
+        db_path = tmp_path / "multi.db"
+        m1 = SessionManager(db_path=db_path)
+        for i in range(3):
+            d = NotebookDocument()
+            d.add_cell(Cell(cell_type=CellType.CODE, source=f"cell_{i}"))
+            m1.store(f"s{i}", d)
+        del m1
+
+        m2 = SessionManager(db_path=db_path)
+        assert len(m2.list_sessions()) == 3
+        assert m2.get("s2").cells[0].source == "cell_2"
