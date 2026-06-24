@@ -14,7 +14,7 @@ LLMs struggle with raw `.ipynb` files — the verbose JSON structure, metadata, 
 
 ## Features
 
-- **Multi-format support**: Load and save `.ipynb`, percent scripts (`# %%`), Quarto, Markdown, Marimo, and R Markdown formats.
+- **Multi-format support**: Load and save `.ipynb`, percent scripts (`# %%`), Quarto, Markdown, Marimo, Deepnote (`.deepnote`), and R Markdown formats.
 - **LLM-optimized output**: Three verbosity modes — `minimal` (source only), `standard` (+ execution counts, tags), `full` (+ cell outputs).
 - **CLI tools**: Convert between formats, inspect notebook structure, search cell contents, extract individual cells.
 - **MCP server**: Expose notebook operations as tools for LLMs (session-based, with cell CRUD, search, and execution).
@@ -34,6 +34,7 @@ pip install notebookllm[cli]      # CLI tools (click, rich)
 pip install notebookllm[mcp]      # MCP server
 pip install notebookllm[execute]  # Cell execution via jupyter_client
 pip install notebookllm[stream]   # Streaming for large notebooks (ijson)
+pip install notebookllm[token]    # Token estimation via tiktoken
 pip install notebookllm[all]      # Everything above
 ```
 
@@ -65,6 +66,10 @@ notebookllm search notebook.ipynb "def train" --type code
 # Extract a specific cell
 notebookllm get notebook.ipynb 3
 
+# Estimate token usage (requires [token] extra)
+notebookllm tokens notebook.ipynb
+notebookllm tokens notebook.ipynb -m full --breakdown
+
 # Start the MCP server
 notebookllm server
 
@@ -72,7 +77,7 @@ notebookllm server
 notebookllm server --transport sse
 ```
 
-Output formats: `ipynb`, `percent` (`# %%` markers), `quarto` (`.qmd`), `markdown`, `marimo`, `rmarkdown` (`.Rmd`).
+Output formats: `ipynb`, `percent` (`# %%` markers), `quarto` (`.qmd`), `markdown`, `marimo`, `rmarkdown` (`.Rmd`), `script` (flat `.py` export).
 
 ## Python API
 
@@ -126,7 +131,7 @@ dump_file(doc, "output.py")
 doc = loads_text("# %% [code]\nx = 1\n")
 ```
 
-Supported formats: `ipynb`, `percent`, `quarto`, `markdown`, `marimo`.
+Supported formats: `ipynb`, `percent`, `quarto`, `markdown`, `marimo`, `rmarkdown`, `script`.
 
 ## MCP Server
 
@@ -192,9 +197,12 @@ uvx notebookllm-server
 
 | Tool | Purpose |
 |------|---------|
-| `load_notebook` | Load a notebook into a session (returns session ID) |
-| `save_notebook` | Save the session notebook to file |
+| `create` | Create a new empty notebook session (alias: `create_notebook`) |
+| `load` | Load a notebook into a session (alias: `load_notebook`) |
+| `save` | Save the session notebook to file (alias: `save_notebook`) |
+| `convert` | Convert a session's notebook to another format (alias: `convert_format`) |
 | `to_text` | Convert session notebook to LLM-optimized text (modes: minimal, standard, full) |
+| `list_sessions` | List all active notebook sessions |
 | `list_cells` | List all cells with index, type, and preview |
 | `get_cell` | Get a specific cell by index |
 | `add_cell` | Add a new code, markdown, or raw cell |
@@ -202,7 +210,11 @@ uvx notebookllm-server
 | `delete_cell` | Delete a cell by index |
 | `move_cell` | Move a cell from one position to another |
 | `search_cells` | Search cells by content (case-insensitive) |
-| `execute_cell` | Execute a code cell via Jupyter kernel (requires `[execute]`) |
+| `execute` | Execute a code cell via async Jupyter kernel (alias: `execute_cell`) |
+| `execute_all` | Execute all code cells sequentially (alias: `execute_all_cells`) |
+| `list_kernels` | List available kernels from jupyter kernelspec |
+| `fingerprint` | Provide a concise summary/fingerprint of a notebook session |
+| `diff` | Compare the minimal text representation of two notebook sessions |
 | `count_tokens` | Count tokens in the session notebook (modes: minimal, standard, full) |
 
 ## Development
