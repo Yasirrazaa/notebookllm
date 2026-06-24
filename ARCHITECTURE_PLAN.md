@@ -956,7 +956,7 @@ class TestConvertFormat:
 
 **Goal:** Execute cells without blocking. See outputs without bloat.
 
-### Task 3.1: KernelPool with isolated execution (RED → GREEN)
+### Task 3.1: KernelPool with isolated execution (COMPLETED)
 
 **RED** — `tests/test_mcp.py`
 

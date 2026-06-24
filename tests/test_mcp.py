@@ -361,36 +361,42 @@ class TestSaveNotebook:
 
 
 @pytest.mark.asyncio
-class TestExecuteCell:
-    """Tests for the execute_cell MCP tool."""
-
-    async def test_execute_not_installed(self, app_with_session, monkeypatch):
-        """Should return error when jupyter_client is not installed."""
+class TestKernelExecution:
+    async def test_execute_simple_code(self, app_with_session):
+        """Execute a simple code cell and get output."""
         app, _ = app_with_session
-        real_import = __import__
+        from unittest.mock import patch
+        
+        with patch("notebookllm.mcp.engine.KernelPool.start_kernel") as mock_start:
+            with patch("notebookllm.mcp.engine.KernelPool.execute_cell", return_value="[stdout] executed") as mock_exec:
+                result = await app.call_tool("execute_cell", {
+                    "session_id": "test-session",
+                    "index": 0,
+                })
+        text = _get_text(result)
+        assert "[stdout]" in text or "[output]" in text or "executed" in text.lower()
 
-        def mock_import(name, *args, **kwargs):
-            if name == "jupyter_client":
-                raise ImportError("simulated not installed")
-            return real_import(name, *args, **kwargs)
+    async def test_execute_all_cells(self, app_with_session):
+        """Execute all code cells sequentially."""
+        app, _ = app_with_session
+        from unittest.mock import patch
+        
+        with patch("notebookllm.mcp.engine.KernelPool.start_kernel"):
+            with patch("notebookllm.mcp.engine.KernelPool.execute_all_cells", return_value="Executed 2 cells") as mock_exec_all:
+                result = await app.call_tool("execute_all_cells", {
+                    "session_id": "test-session",
+                })
+        text = _get_text(result)
+        assert "Executed" in text or "cells" in text.lower() or "execute" in text.lower()
 
-        monkeypatch.setattr("builtins.__import__", mock_import)
+    async def test_execute_non_code_cell_returns_error(self, app_with_session):
+        """Markdown cell returns clear error, not crash."""
+        app, _ = app_with_session
         result = await app.call_tool("execute_cell", {
             "session_id": "test-session",
-            "index": 0,
+            "index": 1,
         })
-        text = _get_text(result)
-        assert "not installed" in text.lower()
-
-    async def test_execute_not_code_cell(self, app_with_session):
-        """Should fail gracefully when cell is markdown."""
-        app, _ = app_with_session
-        result = await app.call_tool("execute_cell", {
-            "session_id": "test-session",
-            "index": 1,  # index 1 is markdown
-        })
-        text = _get_text(result)
-        assert "not a code cell" in text.lower()
+        assert "not a code cell" in _get_text(result).lower()
 
 
 @pytest.mark.asyncio
@@ -454,10 +460,12 @@ class TestMCPAppCreation:
         assert "search_cells" in tool_names
         assert "save_notebook" in tool_names
         assert "execute_cell" in tool_names
+        assert "execute_all_cells" in tool_names
         assert "create_notebook" in tool_names
         assert "list_sessions" in tool_names
         assert "convert_format" in tool_names
-        assert len(tool_names) == 15
+        assert "list_kernels" in tool_names
+        assert len(tool_names) == 17
 
     async def test_list_tools_output(self, session_manager):
         app = create_app(session_manager)

@@ -27,6 +27,9 @@ def create_app(session_manager: SessionManager | None = None):
             "MCP server requires 'mcp[cli]'. Install with: pip install notebookllm[mcp]"
         ) from None
 
+    from notebookllm.mcp.engine import KernelPool
+    kernel_pool = KernelPool()
+
     if session_manager is None:
         session_manager = SessionManager()
 
@@ -194,75 +197,40 @@ def create_app(session_manager: SessionManager | None = None):
             return f"Error converting format: {e}"
 
     @mcp.tool()
-    def execute_cell(session_id: str, index: int, timeout: int = 60) -> str:
+    async def execute_cell(session_id: str, index: int, timeout: int = 60) -> str:
         """Execute a code cell via Jupyter kernel (requires notebookllm[execute])."""
-        try:
-            import jupyter_client  # type: ignore[import-not-found]  # noqa: F401
-        except ImportError:
-            return (
-                "Error: notebookllm[execute] not installed."
-                " Run: pip install notebookllm[execute]"
-            )
-
-        try:
-            session = session_manager.get_session(session_id)
-        except KeyError:
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
             return f"Session not found: {session_id}"
             
-        doc = session.doc
         cell = doc.get_cell(index)
         if cell.cell_type != CellType.CODE:
             return f"Cell [{index}] is not a code cell (it's {cell.cell_type.value})."
 
-        # Execute via jupyter_client
-        from jupyter_client import KernelManager
+        try:
+            await kernel_pool.start_kernel(session_id, doc.kernel_name or "python3")
+            return await kernel_pool.execute_cell(session_id, index, cell.source, timeout=timeout)
+        except Exception as e:
+            return str(e)
 
-        if session.kernel_manager is None:
-            kernel_name = doc.kernel_name or "python3"
-            try:
-                session.kernel_manager = KernelManager(kernel_name=kernel_name)
-                session.kernel_manager.start_kernel()
-                session.kernel_client = session.kernel_manager.client()
-                session.kernel_client.start_channels()
-            except Exception as e:
-                return f"Failed to start kernel '{kernel_name}': {e}"
-
-        client = session.kernel_client
+    @mcp.tool()
+    async def execute_all_cells(session_id: str, timeout: int = 60) -> str:
+        """Execute all code cells sequentially."""
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
 
         try:
-            msg_id = client.execute(cell.source)
-            try:
-                reply = client.get_shell_msg(timeout=timeout)
-            except TimeoutError:
-                return f"Cell execution timed out after {timeout}s"
-            if reply["content"]["status"] == "error":
-                return f"Execution error: {reply['content']['evalue']}"
-
-            # Collect outputs
-            outputs = []
-            while True:
-                try:
-                    msg = client.get_iopub_msg(timeout=5)
-                    if msg["parent_header"].get("msg_id") == msg_id:
-                        msg_type = msg["msg_type"]
-                        content = msg["content"]
-                        if msg_type == "stream":
-                            out_name = content.get("name", "stdout")
-                            out_text = content.get("text", "")
-                            outputs.append(f"[{out_name}] {out_text}")
-                        elif msg_type == "execute_result":
-                            data = content.get("data", {})
-                            outputs.append(f"[output] {data.get('text/plain', '')}")
-                        elif msg_type == "error":
-                            outputs.append(f"[error] {content.get('evalue', '')}")
-                        elif msg_type == "status" and content.get("execution_state") == "idle":
-                            break
-                except TimeoutError:
-                    break
-
-            return "\n".join(outputs) if outputs else "Cell executed (no output)."
+            await kernel_pool.start_kernel(session_id, doc.kernel_name or "python3")
+            return await kernel_pool.execute_all_cells(session_id, doc.cells, timeout=timeout)
         except Exception as e:
-            return f"Error executing cell: {e}"
+            return str(e)
+
+    @mcp.tool()
+    def list_kernels() -> str:
+        """List available kernels from jupyter kernelspec."""
+        import json
+        return json.dumps(kernel_pool.list_kernels())
 
     return mcp
 
