@@ -1,5 +1,6 @@
 """CLI commands for notebookllm — convert, inspect, search, get."""
 from __future__ import annotations
+from pathlib import Path
 
 import click
 
@@ -23,25 +24,74 @@ def _load_or_abort(file: str) -> NotebookDocument:
         raise click.Abort() from e
 
 
+_FORMAT_EXTENSIONS = {
+    "ipynb": ".ipynb",
+    "percent": ".py",
+    "quarto": ".qmd",
+    "markdown": ".md",
+}
+
+
+def _batch_output_path(source: str, outdir: str, fmt: str | None) -> str:
+    """Derive an output path for a source file inside *outdir*.
+
+    Uses *fmt* to pick the extension, defaulting to ``.py``.
+    """
+    stem = Path(source).stem
+    ext = _FORMAT_EXTENSIONS.get(fmt, ".py") if fmt else ".py"
+    return str(Path(outdir) / f"{stem}_converted{ext}")
+
+
 @cli.command()
-@click.argument("file", type=click.Path(exists=True))
-@click.option("-o", "--output", type=click.Path(), help="Output file path")
+@click.argument("files", nargs=-1, type=click.Path(exists=True), required=True)
+@click.option("-o", "--output", type=click.Path(), help="Output file path (single file only)")
+@click.option("--outdir", type=click.Path(), help="Output directory (batch mode)")
 @click.option("-f", "--format", "fmt", help="Output format (ipynb, percent, quarto, markdown)")
 @click.option("-m", "--mode", type=click.Choice(["minimal", "standard", "full"]), default="minimal",
               help="LLM output mode")
-def convert(file: str, output: str | None, fmt: str | None, mode: str):
-    """Convert notebook between formats."""
-    doc = _load_or_abort(file)
+def convert(files: tuple[str, ...], output: str | None, outdir: str | None, fmt: str | None, mode: str):
+    """Convert notebook(s) between formats."""
     from rich.console import Console
     console = Console()
 
-    if output:
-        dump_file(doc, output, fmt=fmt)
-        console.print(f"[green]✓[/green] Converted to [bold]{output}[/bold]")
+    if len(files) > 1 and output:
+        console.print("[red]Error:[/red] --output cannot be used with multiple files (use --outdir instead).")
+        raise click.Abort()
+
+    if len(files) > 1 or outdir:
+        # Batch mode
+        if output:
+            _convert_single(files[0], output, fmt, mode, console)
+        else:
+            for file in files:
+                if outdir:
+                    Path(outdir).mkdir(parents=True, exist_ok=True)
+                    out_path = _batch_output_path(file, outdir, fmt)
+                    _convert_single(file, out_path, fmt, mode, console)
+                else:
+                    # Multiple files to stdout — print each with header
+                    doc = _load_or_abort(file)
+                    output_mode = OutputMode(mode)
+                    text = doc.to_text(mode=output_mode)
+                    console.print(f"[bold]{file}[/bold]", markup=False)
+                    console.print(text, markup=False)
+                    console.print()
     else:
-        output_mode = OutputMode(mode)
-        text = doc.to_text(mode=output_mode)
-        console.print(text, markup=False)
+        # Single file, backward compat path
+        if output:
+            _convert_single(files[0], output, fmt, mode, console)
+        else:
+            doc = _load_or_abort(files[0])
+            output_mode = OutputMode(mode)
+            text = doc.to_text(mode=output_mode)
+            console.print(text, markup=False)
+
+
+def _convert_single(file: str, output: str, fmt: str | None, mode: str, console):
+    """Load *file*, dump to *output* and print a success message."""
+    doc = _load_or_abort(file)
+    dump_file(doc, output, fmt=fmt)
+    console.print(f"[green]✓[/green] [bold]{output}[/bold]")
 
 
 @cli.command()

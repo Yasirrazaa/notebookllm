@@ -56,6 +56,15 @@ notebookllm convert notebook.ipynb -f markdown -o notebook.md
 notebookllm convert notebook.ipynb -m standard
 notebookllm convert notebook.ipynb -m full
 
+# Batch convert multiple files (print all to stdout)
+notebookllm convert notebook.ipynb script.py notebook.qmd
+
+# Batch convert with output directory (auto-named: {stem}_converted.{ext})
+notebookllm convert notebook.ipynb script.py --outdir ./converted
+
+# Batch convert to a specific format
+notebookllm convert notebook.ipynb script.py --outdir ./converted -f markdown
+
 # Inspect notebook structure (cells, types, previews)
 notebookllm inspect notebook.ipynb
 
