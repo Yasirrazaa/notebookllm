@@ -472,7 +472,8 @@ class TestMCPAppCreation:
         assert "list_kernels" in tool_names
         assert "fingerprint" in tool_names
         assert "diff" in tool_names
-        assert len(tool_names) == 25
+        assert "close_session" in tool_names
+        assert len(tool_names) == 26
 
     async def test_list_tools_output(self, session_manager):
         app = create_app(session_manager)
