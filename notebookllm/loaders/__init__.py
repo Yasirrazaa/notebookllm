@@ -15,6 +15,9 @@ def load_file(filepath: str | Path) -> NotebookDocument:
     if fmt == "ipynb":
         from notebookllm.loaders.ipynb import IpynbLoader
         return IpynbLoader().load(filepath)
+    elif fmt == "deepnote":
+        from notebookllm.loaders.deepnote import DeepnoteLoader
+        return DeepnoteLoader().load(filepath)
     elif fmt == "percent":
         from notebookllm.loaders.percent import PercentLoader
         return PercentLoader().load(filepath)
@@ -43,6 +46,9 @@ def dump_file(doc: NotebookDocument, filepath: str | Path, fmt: str | None = Non
     if fmt == "ipynb":
         from notebookllm.loaders.ipynb import IpynbDumper
         IpynbDumper().dump(doc, filepath)
+    elif fmt == "deepnote":
+        from notebookllm.loaders.deepnote import DeepnoteDumper
+        DeepnoteDumper().dump(doc, filepath)
     elif fmt == "percent":
         from notebookllm.loaders.percent import PercentDumper
         PercentDumper().dump(doc, filepath)
@@ -70,6 +76,9 @@ def loads_text(text: str, source_format: str | None = None) -> NotebookDocument:
     if source_format == "ipynb":
         from notebookllm.loaders.ipynb import IpynbLoader
         return IpynbLoader().loads(text)
+    elif source_format == "deepnote":
+        from notebookllm.loaders.deepnote import DeepnoteLoader
+        return DeepnoteLoader().loads(text)
     elif source_format == "percent":
         from notebookllm.loaders.percent import PercentLoader
         return PercentLoader().loads(text)

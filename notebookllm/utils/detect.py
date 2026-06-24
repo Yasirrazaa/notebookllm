@@ -7,7 +7,7 @@ from pathlib import Path
 def detect_format(filepath: Path, content: str | None = None) -> str:
     """Detect notebook format from file extension and optionally content sniffing.
 
-    Returns: "ipynb", "quarto", "markdown", "marimo", or "percent"
+    Returns: "ipynb", "quarto", "markdown", "marimo", "deepnote", or "percent"
     """
     filepath = Path(filepath)
     ext = filepath.suffix.lower()
@@ -18,6 +18,8 @@ def detect_format(filepath: Path, content: str | None = None) -> str:
         return "quarto"
     elif ext == ".rmd":
         return "rmarkdown"
+    elif ext == ".deepnote":
+        return "deepnote"
     elif ext == ".md":
         return "markdown"
     elif ext == ".py":
@@ -77,6 +79,16 @@ def detect_text_format(content: str) -> str:
             obj = json.loads(content)
             if "cells" in obj and "nbformat" in obj:
                 return "ipynb"
+        except Exception:
+            pass
+
+    # Check for Deepnote YAML format
+    if content.strip().startswith("metadata:") or "project:\n  notebooks:" in content:
+        try:
+            import yaml
+            obj = yaml.safe_load(content)
+            if isinstance(obj, dict) and "project" in obj and "notebooks" in obj["project"]:
+                return "deepnote"
         except Exception:
             pass
 
