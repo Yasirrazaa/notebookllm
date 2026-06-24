@@ -36,7 +36,7 @@ def create_app(session_manager: SessionManager | None = None):
     mcp = FastMCP("notebookllm")
 
     @mcp.tool()
-    def load_notebook(filepath: str) -> str:
+    def load(filepath: str) -> str:
         """Load a notebook file into session."""
         session_id = str(uuid.uuid4())
         doc = load_file(filepath)
@@ -49,12 +49,22 @@ def create_app(session_manager: SessionManager | None = None):
         return f"Loaded {len(doc.cells)} cells from {filepath}. Session: {session_id}"
 
     @mcp.tool()
-    def create_notebook(source_format: str | None = None) -> str:
+    def load_notebook(filepath: str) -> str:
+        """Alias for load()."""
+        return load(filepath)
+
+    @mcp.tool()
+    def create(source_format: str | None = None) -> str:
         """Create a new empty notebook session."""
         session_id = str(uuid.uuid4())
         doc = NotebookDocument(source_format=source_format)
         session_manager.store(session_id, doc)
         return f"Created empty notebook. Session: {session_id}"
+
+    @mcp.tool()
+    def create_notebook(source_format: str | None = None) -> str:
+        """Alias for create()."""
+        return create(source_format)
 
     @mcp.tool()
     def list_sessions() -> str:
@@ -71,7 +81,7 @@ def create_app(session_manager: SessionManager | None = None):
         return "\n".join(lines)
 
     @mcp.tool()
-    def save_notebook(session_id: str, output_filepath: str | None = None) -> str:
+    def save(session_id: str, output_filepath: str | None = None) -> str:
         """Save notebook to file."""
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
@@ -81,6 +91,11 @@ def create_app(session_manager: SessionManager | None = None):
             return "No filepath specified and none set in session."
         dump_file(doc, filepath)
         return f"Saved to {filepath}"
+
+    @mcp.tool()
+    def save_notebook(session_id: str, output_filepath: str | None = None) -> str:
+        """Alias for save()."""
+        return save(session_id, output_filepath)
 
     @mcp.tool()
     def to_text(session_id: str, mode: str = "minimal") -> str:
@@ -183,7 +198,7 @@ def create_app(session_manager: SessionManager | None = None):
         return report.token_summary
 
     @mcp.tool()
-    def convert_format(session_id: str, output_filepath: str, target_format: str) -> str:
+    def convert(session_id: str, output_filepath: str, target_format: str) -> str:
         """Convert a session's notebook to another format and save it. Target formats: ipynb, deepnote, percent, marimo, quarto, markdown, rmarkdown, script."""
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
@@ -197,7 +212,12 @@ def create_app(session_manager: SessionManager | None = None):
             return f"Error converting format: {e}"
 
     @mcp.tool()
-    async def execute_cell(session_id: str, index: int, timeout: int = 60) -> str:
+    def convert_format(session_id: str, output_filepath: str, target_format: str) -> str:
+        """Alias for convert()."""
+        return convert(session_id, output_filepath, target_format)
+
+    @mcp.tool()
+    async def execute(session_id: str, index: int, timeout: int = 60) -> str:
         """Execute a code cell via Jupyter kernel (requires notebookllm[execute])."""
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
@@ -214,7 +234,12 @@ def create_app(session_manager: SessionManager | None = None):
             return str(e)
 
     @mcp.tool()
-    async def execute_all_cells(session_id: str, timeout: int = 60) -> str:
+    async def execute_cell(session_id: str, index: int, timeout: int = 60) -> str:
+        """Alias for execute()."""
+        return await execute(session_id, index, timeout)
+
+    @mcp.tool()
+    async def execute_all(session_id: str, timeout: int = 60) -> str:
         """Execute all code cells sequentially."""
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
@@ -227,10 +252,64 @@ def create_app(session_manager: SessionManager | None = None):
             return str(e)
 
     @mcp.tool()
+    async def execute_all_cells(session_id: str, timeout: int = 60) -> str:
+        """Alias for execute_all()."""
+        return await execute_all(session_id, timeout)
+
+    @mcp.tool()
     def list_kernels() -> str:
         """List available kernels from jupyter kernelspec."""
         import json
         return json.dumps(kernel_pool.list_kernels())
+
+    @mcp.tool()
+    def fingerprint(session_id: str) -> str:
+        """Provide a concise summary/fingerprint of a notebook session."""
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
+        
+        cells = doc.cells
+        total = len(cells)
+        code_cells = [c for c in cells if c.cell_type == CellType.CODE]
+        markdown = len([c for c in cells if c.cell_type == CellType.MARKDOWN])
+        raw = len([c for c in cells if c.cell_type == CellType.RAW])
+        
+        executed = len([c for c in code_cells if c.execution_count is not None or c.outputs])
+        
+        import re
+        imports = set()
+        functions = set()
+        for c in code_cells:
+            for match in re.finditer(r"^(?:from\s+([a-zA-Z0-9_.]+).*import|import\s+([a-zA-Z0-9_., ]+))", c.source, re.MULTILINE):
+                if match.group(1): imports.add(match.group(1).split(".")[0])
+                elif match.group(2):
+                    for m in match.group(2).split(","): imports.add(m.strip().split(".")[0])
+            for match in re.finditer(r"^def\s+([a-zA-Z0-9_]+)\s*\(", c.source, re.MULTILINE):
+                functions.add(match.group(1))
+                
+        lines = [
+            f"Cells: {total} ({len(code_cells)} code, {markdown} markdown, {raw} raw)",
+            f"Executed: {executed}/{len(code_cells)} code cells",
+        ]
+        if imports:
+            lines.append(f"Imports: {', '.join(sorted(imports))}")
+        if functions:
+            lines.append(f"Functions: {', '.join(sorted(functions))}")
+            
+        return "\n".join(lines)
+
+    @mcp.tool()
+    def diff(session_id1: str, session_id2: str) -> str:
+        """Compare the minimal text representation of two notebook sessions."""
+        doc1 = _get_doc_safe(session_manager, session_id1)
+        doc2 = _get_doc_safe(session_manager, session_id2)
+        if not doc1: return f"Session not found: {session_id1}"
+        if not doc2: return f"Session not found: {session_id2}"
+        import difflib
+        text1 = doc1.to_text(mode=OutputMode.MINIMAL).splitlines(keepends=True)
+        text2 = doc2.to_text(mode=OutputMode.MINIMAL).splitlines(keepends=True)
+        return "".join(difflib.unified_diff(text1, text2, fromfile=session_id1, tofile=session_id2))
 
     return mcp
 

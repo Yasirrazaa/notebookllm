@@ -458,14 +458,21 @@ class TestMCPAppCreation:
         assert "delete_cell" in tool_names
         assert "move_cell" in tool_names
         assert "search_cells" in tool_names
+        assert "save" in tool_names
         assert "save_notebook" in tool_names
+        assert "execute" in tool_names
         assert "execute_cell" in tool_names
+        assert "execute_all" in tool_names
         assert "execute_all_cells" in tool_names
+        assert "create" in tool_names
         assert "create_notebook" in tool_names
         assert "list_sessions" in tool_names
+        assert "convert" in tool_names
         assert "convert_format" in tool_names
         assert "list_kernels" in tool_names
-        assert len(tool_names) == 17
+        assert "fingerprint" in tool_names
+        assert "diff" in tool_names
+        assert len(tool_names) == 25
 
     async def test_list_tools_output(self, session_manager):
         app = create_app(session_manager)

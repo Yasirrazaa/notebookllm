@@ -47,15 +47,25 @@ def convert(file: str, output: str | None, fmt: str | None, mode: str):
 def inspect(file: str):
     """Inspect notebook structure."""
     doc = _load_or_abort(file)
-    click.echo(f"Format: {doc.source_format}")
-    click.echo(f"Cells: {len(doc.cells)}")
-    click.echo(f"Language: {doc.language}")
-    click.echo()
+    from rich.console import Console
+    from rich.table import Table
+    console = Console()
+    console.print(f"Format: {doc.source_format}")
+    console.print(f"Cells: {len(doc.cells)}")
+    console.print(f"Language: {doc.language}\n")
+    
+    table = Table(title="Cells")
+    table.add_column("Index", justify="right", style="cyan")
+    table.add_column("Type", style="magenta")
+    table.add_column("Preview")
+    
     for i, cell in enumerate(doc.cells):
         preview = cell.source[:80].replace("\n", " ")
         if len(cell.source) > 80:
             preview += "..."
-        click.echo(f"  [{i}] {cell.cell_type.value:10s} {preview}")
+        table.add_row(str(i), cell.cell_type.value, preview)
+        
+    console.print(table)
 
 
 @cli.command()
@@ -68,12 +78,27 @@ def search(file: str, query: str, cell_type: str | None):
     doc = _load_or_abort(file)
     ct = CellType(cell_type) if cell_type else None
     results = doc.search(query, cell_type=ct)
+    
+    from rich.console import Console
+    from rich.table import Table
+    console = Console()
+    
     if not results:
-        click.echo("No matches found.")
+        console.print("[yellow]No matches found.[/yellow]")
         return
+        
+    table = Table(title=f"Search Results for '{query}'")
+    table.add_column("Index", justify="right", style="cyan")
+    table.add_column("Type", style="magenta")
+    table.add_column("Preview")
+    
     for idx, cell in results:
         preview = cell.source[:80].replace("\n", " ")
-        click.echo(f"  [{idx}] {cell.cell_type.value:10s} {preview}")
+        import re
+        preview = re.sub(f"({re.escape(query)})", r"[bold green]\1[/bold green]", preview, flags=re.IGNORECASE)
+        table.add_row(str(idx), cell.cell_type.value, preview)
+        
+    console.print(table)
 
 
 @cli.command()
@@ -83,8 +108,12 @@ def get(file: str, index: int):
     """Get a specific cell by index."""
     doc = _load_or_abort(file)
     cell = doc.get_cell(index)
-    click.echo(f"Cell [{index}] ({cell.cell_type.value}):")
-    click.echo(cell.source)
+    from rich.console import Console
+    from rich.syntax import Syntax
+    console = Console()
+    console.print(f"Cell [{index}] ({cell.cell_type.value}):")
+    syntax = Syntax(cell.source, "python" if cell.cell_type == CellType.CODE else "markdown", theme="monokai")
+    console.print(syntax)
 
 
 @cli.command()
@@ -105,10 +134,20 @@ def tokens(file: str, mode: str, breakdown: bool):
     """Estimate token usage for a notebook."""
     doc = _load_or_abort(file)
     from notebookllm.utils.tokenizer import tokenize_notebook
+    from rich.console import Console
+    from rich.table import Table
+    console = Console()
 
     report = tokenize_notebook(doc, mode=mode)
-    click.echo(report.token_summary)
+    console.print(report.token_summary)
     if breakdown and report.cell_tokens:
-        click.echo()
+        table = Table(title="Token Breakdown")
+        table.add_column("Index", justify="right", style="cyan")
+        table.add_column("Type", style="magenta")
+        table.add_column("Tokens", justify="right", style="green")
+        table.add_column("Preview")
+        
         for ct in report.cell_tokens:
-            click.echo(f"  [{ct.cell_index:4d}] {ct.cell_type:10s} {ct.tokens:6d}  {ct.preview}")
+            table.add_row(str(ct.cell_index), ct.cell_type, str(ct.tokens), ct.preview)
+            
+        console.print(table)

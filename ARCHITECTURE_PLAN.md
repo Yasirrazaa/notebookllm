@@ -1212,7 +1212,7 @@ def test_token_budget_prioritizes_markdown():
 
 **Goal:** Agent-friendly MCP surface, CLI parity, documentation.
 
-### Task 4.1: Rename/simplify MCP tools
+### Task 4.1: Rename/simplify MCP tools (COMPLETED)
 
 | Current | Proposed | Rationale |
 |---------|----------|-----------|
@@ -1231,7 +1231,7 @@ def test_token_budget_prioritizes_markdown():
 
 Add aliases so old tool names still work (backward compat for agents that learned the old names).
 
-### Task 4.2: Notebook fingerprint tool
+### Task 4.2: Notebook fingerprint tool (COMPLETED)
 
 **Tool:** `fingerprint(session_id) → str`
 ```
@@ -1246,7 +1246,7 @@ Key findings: "Accuracy: 0.934", "RMSE: 1.23"
 
 Implementation: static analysis of cell sources + execution metadata. No ML, no external deps. Just regex + string analysis.
 
-### Task 4.3: Actually use rich in CLI
+### Task 4.3: Actually use rich in CLI (COMPLETED)
 
 Replace `click.echo()` with `rich.print()` and `rich.table.Table` in:
 - `inspect` → Rich table
