@@ -32,14 +32,16 @@ def _load_or_abort(file: str) -> NotebookDocument:
 def convert(file: str, output: str | None, fmt: str | None, mode: str):
     """Convert notebook between formats."""
     doc = _load_or_abort(file)
+    from rich.console import Console
+    console = Console()
 
     if output:
         dump_file(doc, output, fmt=fmt)
-        click.echo(f"Converted to {output}")
+        console.print(f"[green]✓[/green] Converted to [bold]{output}[/bold]")
     else:
         output_mode = OutputMode(mode)
         text = doc.to_text(mode=output_mode)
-        click.echo(text)
+        console.print(text, markup=False)
 
 
 @cli.command()

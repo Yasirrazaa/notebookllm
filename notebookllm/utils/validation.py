@@ -154,7 +154,7 @@ def validate_filepath(filepath: str | Path) -> Path:
 
 def validate_output_format(fmt: str) -> str:
     """Validate output format string."""
-    valid = {"ipynb", "percent", "marimo", "quarto", "markdown", "rmarkdown", "script"}
+    valid = {"ipynb", "percent", "marimo", "quarto", "markdown", "rmarkdown", "script", "deepnote"}
     if fmt not in valid:
         raise ValueError(f"Invalid format '{fmt}'. Must be one of: {valid}")
     return fmt

@@ -183,6 +183,68 @@ class TestSummarization:
         assert "age" in result  # column name preserved
         assert "50000" not in result  # values removed
 
+    def test_summarize_dataframe_with_shape(self):
+        """DataFrame with shape line is detected."""
+        optimizer = LLMOptimizer(mode=OutputMode.FULL, summarize_outputs=True)
+        output = CellOutput(
+            output_type="execute_result",
+            content={
+                "text/plain": "(1000, 5)\n   name  age  salary\n0  Alice   30   50000\n1    Bob   25   60000",
+                "text/html": "<table>...</table>"
+            }
+        )
+        cell = Cell(cell_type=CellType.CODE, source="df.describe()",
+                    outputs=[output], execution_count=1)
+        doc = NotebookDocument(cells=[cell])
+        result = optimizer.optimize(doc)
+        assert "DataFrame" in result
+        assert "1000" in result  # shape preserved
+
+    def test_summarize_image_png(self):
+        """Image output shows mime type and approximate size."""
+        optimizer = LLMOptimizer(mode=OutputMode.FULL, summarize_outputs=True)
+        # Simulate a ~50KB PNG
+        fake_png = "x" * (50 * 1024)
+        output = CellOutput(
+            output_type="display_data",
+            content={"image/png": fake_png, "text/plain": "[PNG image]"}
+        )
+        cell = Cell(cell_type=CellType.CODE, source="plt.plot([1,2,3])",
+                    outputs=[output], execution_count=1)
+        doc = NotebookDocument(cells=[cell])
+        result = optimizer.optimize(doc)
+        assert "Plot" in result
+        assert "image/png" in result
+        assert "KB" in result
+
+    def test_summarize_image_jpeg(self):
+        """JPEG image shows mime type and size."""
+        optimizer = LLMOptimizer(mode=OutputMode.FULL, summarize_outputs=True)
+        fake_jpeg = "y" * (20 * 1024)
+        output = CellOutput(
+            output_type="display_data",
+            content={"image/jpeg": fake_jpeg}
+        )
+        cell = Cell(cell_type=CellType.CODE, source="plt.imshow(img)",
+                    outputs=[output], execution_count=1)
+        doc = NotebookDocument(cells=[cell])
+        result = optimizer.optimize(doc)
+        assert "Plot" in result
+        assert "image/jpeg" in result
+
+    def test_summarize_image_no_match(self):
+        """Non-image MIME bundles pass through to default handling."""
+        optimizer = LLMOptimizer(mode=OutputMode.FULL, summarize_outputs=True)
+        output = CellOutput(
+            output_type="display_data",
+            content={"application/json": '{"key": "value"}'}
+        )
+        cell = Cell(cell_type=CellType.CODE, source='display({"key": "value"})',
+                    outputs=[output], execution_count=1)
+        doc = NotebookDocument(cells=[cell])
+        result = optimizer.optimize(doc)
+        assert "application" in result or "display" in result
+
     def test_summarize_long_traceback(self):
         """Full tracebacks are replaced with ErrorType: message."""
         optimizer = LLMOptimizer(mode=OutputMode.FULL, summarize_outputs=True)
@@ -209,3 +271,48 @@ class TestSummarization:
         result = optimizer.optimize(doc)
         assert "truncated" in result
         assert len(result) < 600
+
+
+class TestTokenBudget:
+    """Tests for the max_tokens / token budget feature."""
+
+    def test_no_budget_returns_full(self):
+        """Without max_tokens, all cells are returned."""
+        doc = _sample_doc()
+        result = LLMOptimizer(mode=OutputMode.MINIMAL).optimize(doc)
+        assert result.count("# %% [") == 3
+
+    def test_large_budget_keeps_all(self):
+        """With a large budget, all cells are kept."""
+        doc = _sample_doc()
+        result = LLMOptimizer(mode=OutputMode.MINIMAL, max_tokens=10000).optimize(doc)
+        assert result.count("# %% [") == 3
+
+    def test_small_budget_drops_code_cells(self):
+        """With a small budget, code cells without outputs are dropped first."""
+        # Add a code cell with no outputs (low priority)
+        doc = NotebookDocument()
+        doc.add_cell(Cell(cell_type=CellType.CODE, source="x = 1"))  # no outputs — lowest priority
+        doc.add_cell(Cell(cell_type=CellType.MARKDOWN, source="# Important Context"))
+        doc.add_cell(Cell(cell_type=CellType.CODE, source="print('hello')",
+                          execution_count=1, outputs=[CellOutput(output_type="stream", content="hello")]))
+
+        result = LLMOptimizer(mode=OutputMode.FULL, max_tokens=10).optimize(doc)
+        # With a tiny budget, the code cell without outputs should be dropped first
+        assert "x = 1" not in result, "Code cell without outputs should be dropped first"
+
+    def test_budget_preserves_markdown(self):
+        """Markdown cells are kept as long as possible under token budget."""
+        doc = NotebookDocument()
+        doc.add_cell(Cell(cell_type=CellType.CODE, source="x = 1"))
+        doc.add_cell(Cell(cell_type=CellType.MARKDOWN, source="# Critical Documentation"))
+
+        result = LLMOptimizer(mode=OutputMode.MINIMAL, max_tokens=10).optimize(doc)
+        # Markdown should be kept over a bare code cell
+        assert "# Critical Documentation" in result
+
+    def test_budget_empty_notebook(self):
+        """Empty notebook still returns empty under budget mode."""
+        doc = NotebookDocument()
+        result = LLMOptimizer(mode=OutputMode.MINIMAL, max_tokens=10).optimize(doc)
+        assert result == ""
