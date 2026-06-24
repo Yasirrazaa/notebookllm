@@ -6,7 +6,7 @@ import re
 import textwrap
 from pathlib import Path
 
-from notebookllm.loaders.base import BaseLoader
+from notebookllm.loaders.base import BaseDumper, BaseLoader
 from notebookllm.models import Cell, CellType, NotebookDocument
 
 
@@ -105,3 +105,55 @@ class MarimoLoader(BaseLoader):
         cell_type = CellType.MARKDOWN if self._is_mo_md_call(source) else CellType.CODE
 
         return source, cell_type
+
+
+class MarimoDumper(BaseDumper):
+    """Dump NotebookDocument to marimo format (.py)."""
+
+    def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str:
+        lines = [
+            "import marimo",
+            "",
+            f"__generated_with = \"{doc.metadata.get('generated_with', '0.8.0')}\"",
+            "app = marimo.App()",
+            "",
+            "",
+        ]
+
+        for i, cell in enumerate(doc.cells):
+            lines.append("@app.cell")
+            
+            # Determine function name (must be valid identifier)
+            # If marimo uses specific cell names, they are not currently stored natively, 
+            # so we generate generic cell function names.
+            func_name = f"cell_{i}"
+            lines.append(f"def {func_name}():")
+
+            if cell.cell_type == CellType.MARKDOWN:
+                # Marimo requires markdown to be wrapped in mo.md()
+                # Use triple double quotes and escape existing ones
+                md_content = cell.source.replace('"""', '\\"\\"\\"')
+                body = f'import marimo as mo\nreturn mo.md(\n    """\n{textwrap.indent(md_content, "    ")}\n    """\n)'
+            else:
+                body = cell.source
+
+            if not body.strip():
+                body = "pass"
+
+            # Indent the cell body inside the function
+            indented_body = textwrap.indent(body, "    ")
+            lines.append(indented_body)
+            
+            # Ensure the function has a return statement if it doesn't already end with one
+            # (Marimo code cells usually return a tuple of declared variables, but just returning is valid)
+            if not body.strip().endswith("return") and not re.search(r"^\s*return\b", body, flags=re.MULTILINE):
+                lines.append("    return")
+            
+            lines.append("")
+            lines.append("")
+
+        content = "\n".join(lines).rstrip() + "\n"
+
+        if filepath:
+            filepath.write_text(content, encoding="utf-8")
+        return content

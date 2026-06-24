@@ -52,6 +52,9 @@ def dump_file(doc: NotebookDocument, filepath: str | Path, fmt: str | None = Non
     elif fmt == "percent":
         from notebookllm.loaders.percent import PercentDumper
         PercentDumper().dump(doc, filepath)
+    elif fmt == "marimo":
+        from notebookllm.loaders.marimo import MarimoDumper
+        MarimoDumper().dump(doc, filepath)
     elif fmt == "quarto":
         from notebookllm.loaders.quarto import QuartoDumper
         QuartoDumper().dump(doc, filepath)

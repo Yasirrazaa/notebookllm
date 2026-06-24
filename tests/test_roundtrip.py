@@ -275,3 +275,15 @@ class TestNotebookDocumentRoundtrip:
         assert "# %% [code]" in text
         assert "# %% [markdown]" in text
         assert "print(1)" in text
+
+
+class TestMarimoRoundtrip:
+    def test_roundtrip_via_dispatch(self, tmp_path):
+        doc = load_file(FIXTURES / "sample_marimo.py")
+        out = tmp_path / "roundtrip.py"
+        dump_file(doc, out)
+        doc2 = load_file(out)
+        assert len(doc2.cells) == len(doc.cells)
+        for c1, c2 in zip(doc.cells, doc2.cells, strict=True):
+            assert c1.cell_type == c2.cell_type
+            assert c1.source.strip() == c2.source.strip()

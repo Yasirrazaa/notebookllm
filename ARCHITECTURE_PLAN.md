@@ -901,7 +901,7 @@ class DeepnoteDumper(BaseDumper):
 3. **Snapshots share the loader**: `.snapshot.deepnote` files have the same structure as `.deepnote` but with outputs populated. The loader handles both. The dumper always produces a `.deepnote` (source-only) file by default; a `with_outputs` parameter can emit a snapshot.
 4. **Block type inference**: When dumping cells that were originally from another format (e.g., ipynb → deepnote), `_infer_block_type()` maps CellType + language to the closest Deepnote block type. CODE + language="sql" → `"sql"`. CODE + no language → `"code"`. MARKDOWN → `"markdown"`. This ensures cross-format conversion produces valid Deepnote files.
 
-### Task 2.3: Implement MarimoDumper (RED → GREEN)
+### Task 2.3: Implement MarimoDumper (COMPLETED)
 
 **RED** — `tests/test_roundtrip.py` (add to existing class)
 ```python
