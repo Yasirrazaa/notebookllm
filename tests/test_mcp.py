@@ -25,8 +25,9 @@ def _get_text(result) -> str:
 
 
 @pytest.fixture
-def session_manager():
-    return SessionManager()
+def session_manager(tmp_path):
+    db_path = tmp_path / "test_mcp_sessions.db"
+    return SessionManager(db_path=db_path)
 
 
 @pytest.fixture
@@ -393,6 +394,47 @@ class TestExecuteCell:
 
 
 @pytest.mark.asyncio
+class TestCreateNotebook:
+    async def test_create_empty(self, app, session_manager):
+        result = await app.call_tool("create_notebook", {})
+        text = _get_text(result)
+        assert "Created empty notebook" in text
+        assert "Session:" in text
+
+    async def test_create_with_format(self, app, session_manager):
+        result = await app.call_tool("create_notebook", {"source_format": "ipynb"})
+        text = _get_text(result)
+        assert "Created empty notebook" in text
+
+    async def test_created_doc_is_editable(self, app, session_manager):
+        # Create notebook → get session ID → add cell
+        create_result = await app.call_tool("create_notebook", {})
+        session_id = _get_text(create_result).split("Session: ")[1].strip()
+        add_result = _get_text(await app.call_tool("add_cell", {
+            "session_id": session_id,
+            "source": "x = 1",
+            "cell_type": "code",
+        }))
+        assert "Added" in add_result
+
+
+@pytest.mark.asyncio
+class TestListSessions:
+    async def test_list_empty(self, app, session_manager):
+        result = await app.call_tool("list_sessions", {})
+        text = _get_text(result)
+        assert "No active sessions" in text
+
+    async def test_list_after_load(self, app, session_manager):
+        await app.call_tool("load_notebook", {
+            "filepath": str(FIXTURES / "sample.ipynb"),
+        })
+        result = _get_text(await app.call_tool("list_sessions", {}))
+        assert "cells" in result
+        assert "3" in result or "cells" in result  # sample has 3 cells
+
+
+@pytest.mark.asyncio
 class TestMCPAppCreation:
     """Tests for basic app creation and lifecycle."""
 
@@ -412,7 +454,10 @@ class TestMCPAppCreation:
         assert "search_cells" in tool_names
         assert "save_notebook" in tool_names
         assert "execute_cell" in tool_names
-        assert len(tool_names) == 12
+        assert "create_notebook" in tool_names
+        assert "list_sessions" in tool_names
+        assert "convert_format" in tool_names
+        assert len(tool_names) == 15
 
     async def test_list_tools_output(self, session_manager):
         app = create_app(session_manager)
@@ -471,3 +516,17 @@ class TestMCPTokenTool:
         })
         text = _get_text(result)
         assert "tokens" in text.lower()
+
+
+@pytest.mark.asyncio
+class TestConvertFormat:
+    async def test_convert_ipynb_to_percent(self, app_with_session, tmp_path):
+        app, _ = app_with_session
+        out = tmp_path / "converted.py"
+        result = await app.call_tool("convert_format", {
+            "session_id": "test-session",
+            "output_filepath": str(out),
+            "target_format": "percent",
+        })
+        assert "Converted" in _get_text(result)
+        assert out.exists()

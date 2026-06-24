@@ -928,7 +928,7 @@ This is the hardest dumper to implement correctly because marimo's AST structure
 
 Update `dump_file` dispatch to handle `"marimo"` → `MarimoDumper`.
 
-### Task 2.4: Add `convert_format` MCP tool (RED → GREEN)
+### Task 2.4: Add `convert_format` MCP tool (COMPLETED)
 
 **RED** — `tests/test_mcp.py`
 ```python

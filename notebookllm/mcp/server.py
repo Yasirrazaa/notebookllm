@@ -46,6 +46,28 @@ def create_app(session_manager: SessionManager | None = None):
         return f"Loaded {len(doc.cells)} cells from {filepath}. Session: {session_id}"
 
     @mcp.tool()
+    def create_notebook(source_format: str | None = None) -> str:
+        """Create a new empty notebook session."""
+        session_id = str(uuid.uuid4())
+        doc = NotebookDocument(source_format=source_format)
+        session_manager.store(session_id, doc)
+        return f"Created empty notebook. Session: {session_id}"
+
+    @mcp.tool()
+    def list_sessions() -> str:
+        """List all active notebook sessions."""
+        sessions = session_manager.list_sessions()
+        if not sessions:
+            return "No active sessions."
+        lines = []
+        for sid in sessions:
+            doc = _get_doc_safe(session_manager, sid)
+            cell_count = len(doc.cells) if doc else "?"
+            fmt = doc.source_format or "unspecified" if doc else "?"
+            lines.append(f"{sid:36s} {cell_count:3d} cells  [{fmt}]")
+        return "\n".join(lines)
+
+    @mcp.tool()
     def save_notebook(session_id: str, output_filepath: str | None = None) -> str:
         """Save notebook to file."""
         doc = _get_doc_safe(session_manager, session_id)
@@ -158,6 +180,20 @@ def create_app(session_manager: SessionManager | None = None):
         return report.token_summary
 
     @mcp.tool()
+    def convert_format(session_id: str, output_filepath: str, target_format: str) -> str:
+        """Convert a session's notebook to another format and save it. Target formats: ipynb, deepnote, percent, marimo, quarto, markdown, rmarkdown, script."""
+        doc = _get_doc_safe(session_manager, session_id)
+        if doc is None:
+            return f"Session not found: {session_id}"
+        
+        from notebookllm.loaders import dump_file
+        try:
+            dump_file(doc, output_filepath, fmt=target_format)
+            return f"Converted session {session_id} to {target_format} format: {output_filepath}"
+        except Exception as e:
+            return f"Error converting format: {e}"
+
+    @mcp.tool()
     def execute_cell(session_id: str, index: int, timeout: int = 60) -> str:
         """Execute a code cell via Jupyter kernel (requires notebookllm[execute])."""
         try:
@@ -168,9 +204,12 @@ def create_app(session_manager: SessionManager | None = None):
                 " Run: pip install notebookllm[execute]"
             )
 
-        doc = _get_doc_safe(session_manager, session_id)
-        if doc is None:
+        try:
+            session = session_manager.get_session(session_id)
+        except KeyError:
             return f"Session not found: {session_id}"
+            
+        doc = session.doc
         cell = doc.get_cell(index)
         if cell.cell_type != CellType.CODE:
             return f"Cell [{index}] is not a code cell (it's {cell.cell_type.value})."
@@ -178,11 +217,19 @@ def create_app(session_manager: SessionManager | None = None):
         # Execute via jupyter_client
         from jupyter_client import KernelManager
 
-        km = KernelManager(kernel_name="python3")
-        km.start_kernel()
+        if session.kernel_manager is None:
+            kernel_name = doc.kernel_name or "python3"
+            try:
+                session.kernel_manager = KernelManager(kernel_name=kernel_name)
+                session.kernel_manager.start_kernel()
+                session.kernel_client = session.kernel_manager.client()
+                session.kernel_client.start_channels()
+            except Exception as e:
+                return f"Failed to start kernel '{kernel_name}': {e}"
+
+        client = session.kernel_client
+
         try:
-            client = km.client()
-            client.start_channels()
             msg_id = client.execute(cell.source)
             try:
                 reply = client.get_shell_msg(timeout=timeout)
@@ -214,8 +261,8 @@ def create_app(session_manager: SessionManager | None = None):
                     break
 
             return "\n".join(outputs) if outputs else "Cell executed (no output)."
-        finally:
-            km.shutdown_kernel()
+        except Exception as e:
+            return f"Error executing cell: {e}"
 
     return mcp
 
