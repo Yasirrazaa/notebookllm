@@ -1,6 +1,7 @@
 """MCP server for notebookllm — tools for notebook operations."""
 from __future__ import annotations
 
+import asyncio
 import uuid
 
 from notebookllm.loaders import dump_file, load_file
@@ -17,6 +18,50 @@ def _get_doc_safe(session_manager: SessionManager, session_id: str) -> NotebookD
         return session_manager.get(session_id)
     except KeyError:
         return None
+
+
+def _validate_cell_type(cell_type: str) -> CellType | str:
+    """Convert string to CellType, returning an error message on failure."""
+    try:
+        return CellType(cell_type)
+    except ValueError:
+        valid = [ct.value for ct in CellType]
+        return f"Invalid cell_type '{cell_type}'. Valid: {', '.join(valid)}"
+
+
+def _validate_output_mode(mode: str) -> OutputMode | str:
+    """Convert string to OutputMode, returning an error message on failure."""
+    try:
+        return OutputMode(mode)
+    except ValueError:
+        valid = [m.value for m in OutputMode]
+        return f"Invalid mode '{mode}'. Valid: {', '.join(valid)}"
+
+
+def _enforce_session_limit(
+    session_manager: SessionManager, kernel_pool: object
+) -> None:
+    """Evict oldest session if over MAX_SESSIONS (synchronous path — for load/create)."""
+    sessions = session_manager.list_sessions()
+    while len(sessions) > MAX_SESSIONS:
+        oldest = sessions[0]
+        session_manager.delete(oldest)
+        sessions = session_manager.list_sessions()
+
+
+async def _enforce_session_limit_async(
+    session_manager: SessionManager, kernel_pool: object
+) -> None:
+    """Evict oldest session if over MAX_SESSIONS (async path — for tools that can await)."""
+    from notebookllm.mcp.engine import KernelPool
+
+    sessions = session_manager.list_sessions()
+    while len(sessions) > MAX_SESSIONS:
+        oldest = sessions[0]
+        if isinstance(kernel_pool, KernelPool):
+            await kernel_pool.shutdown_kernel(oldest)
+        session_manager.delete(oldest)
+        sessions = session_manager.list_sessions()
 
 
 def create_app(session_manager: SessionManager | None = None):
@@ -134,11 +179,7 @@ def create_app(session_manager: SessionManager | None = None):
         session_id = str(uuid.uuid4())
         doc = load_file(filepath)
         session_manager.store(session_id, doc, filepath=filepath)
-        # Evict oldest session if over limit
-        sessions = session_manager.list_sessions()
-        if len(sessions) > MAX_SESSIONS:
-            oldest = sessions[0]
-            session_manager.delete(oldest)
+        _enforce_session_limit(session_manager, kernel_pool)
         return f"Loaded {len(doc.cells)} cells from {filepath}. Session: {session_id}"
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
@@ -152,6 +193,7 @@ def create_app(session_manager: SessionManager | None = None):
         session_id = str(uuid.uuid4())
         doc = NotebookDocument(source_format=source_format)
         session_manager.store(session_id, doc)
+        _enforce_session_limit(session_manager, kernel_pool)
         return f"Created empty notebook. Session: {session_id}"
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
@@ -196,8 +238,10 @@ def create_app(session_manager: SessionManager | None = None):
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
-        output_mode = OutputMode(mode)
-        return doc.to_text(mode=output_mode)
+        result = _validate_output_mode(mode)
+        if isinstance(result, str):
+            return result
+        return doc.to_text(mode=result)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def list_cells(session_id: str) -> str:
@@ -230,8 +274,10 @@ def create_app(session_manager: SessionManager | None = None):
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
-        ct = CellType(cell_type)
-        cell = Cell(cell_type=ct, source=source)
+        result = _validate_cell_type(cell_type)
+        if isinstance(result, str):
+            return result
+        cell = Cell(cell_type=result, source=source)
         doc.add_cell(cell, position=position)
         return f"Added {cell_type} cell at position {position or len(doc.cells) - 1}"
 
@@ -241,7 +287,13 @@ def create_app(session_manager: SessionManager | None = None):
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
-        ct = CellType(cell_type) if cell_type else None
+        if cell_type is not None:
+            result = _validate_cell_type(cell_type)
+            if isinstance(result, str):
+                return result
+            ct = result
+        else:
+            ct = None
         doc.edit_cell(index, source=source, cell_type=ct)
         return f"Edited cell [{index}]"
 
@@ -270,7 +322,13 @@ def create_app(session_manager: SessionManager | None = None):
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
-        ct = CellType(cell_type) if cell_type else None
+        if cell_type is not None:
+            result = _validate_cell_type(cell_type)
+            if isinstance(result, str):
+                return result
+            ct = result
+        else:
+            ct = None
         results = doc.search(query, cell_type=ct)
         if not results:
             return "No matches found."
@@ -331,7 +389,7 @@ def create_app(session_manager: SessionManager | None = None):
         """Alias for execute()."""
         return await execute(session_id, index, timeout)
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(destructiveHint=True))
     async def execute_all(session_id: str, timeout: int = 60) -> str:
         """Execute all code cells sequentially."""
         doc = _get_doc_safe(session_manager, session_id)
@@ -363,9 +421,12 @@ def create_app(session_manager: SessionManager | None = None):
             lines.append(f"  {name:20s} {display_name:30s} ({language})")
         return f"Available kernels ({len(kernels)}):\n" + "\n".join(lines)
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-    def close_session(session_id: str) -> str:
-        """Explicitly close and remove a notebook session."""
+    @mcp.tool(annotations=ToolAnnotations(destructiveHint=False))
+    async def close_session(session_id: str) -> str:
+        """Explicitly close and remove a notebook session, cleaning up any associated kernel."""
+        # Shut down any active kernel before removing the session
+        if kernel_pool.has_kernel(session_id):
+            await kernel_pool.shutdown_kernel(session_id)
         try:
             session_manager.delete(session_id)
             return f"Session {session_id} closed."

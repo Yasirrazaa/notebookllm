@@ -5,6 +5,7 @@ import json
 import os
 import sqlite3
 import threading
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -52,7 +53,7 @@ class SessionManager:
 
     def _init_db(self) -> None:
         """Create the sessions table if it doesn't exist."""
-        with self._get_conn() as conn:
+        with self._conn_ctx() as conn:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS sessions (
@@ -65,14 +66,28 @@ class SessionManager:
                 """
             )
 
-    def _get_conn(self) -> sqlite3.Connection:
+    # ------------------------------------------------------------------
+    # Connection lifecycle — each call creates a new connection,
+    # automatically commits on success, rolls back on error, and
+    # always closes the connection.
+    # ------------------------------------------------------------------
+
+    @contextmanager
+    def _conn_ctx(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self._db_path), timeout=30)
         conn.row_factory = sqlite3.Row
-        return conn
+        try:
+            yield conn
+            conn.commit()
+        except BaseException:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def _load_from_db(self) -> None:
         """Load all sessions from SQLite into in-memory cache."""
-        with self._get_conn() as conn:
+        with self._conn_ctx() as conn:
             rows = conn.execute(
                 "SELECT notebook_id, doc, metadata FROM sessions ORDER BY updated_at ASC"
             ).fetchall()
@@ -93,7 +108,7 @@ class SessionManager:
         now = datetime.now(UTC).isoformat()
         doc_json = session.doc.to_json()
         meta = json.dumps({"filepath": session.filepath})
-        with self._get_conn() as conn:
+        with self._conn_ctx() as conn:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO sessions (notebook_id, created_at, updated_at, doc, metadata)
@@ -104,7 +119,7 @@ class SessionManager:
 
     def _remove_from_db(self, session_id: str) -> None:
         """Delete a session from SQLite."""
-        with self._get_conn() as conn:
+        with self._conn_ctx() as conn:
             conn.execute("DELETE FROM sessions WHERE notebook_id = ?", (session_id,))
 
     # ------------------------------------------------------------------
@@ -133,7 +148,7 @@ class SessionManager:
         with self._lock:
             if session_id not in self._cache:
                 # Fallback: try loading from SQLite
-                with self._get_conn() as conn:
+                with self._conn_ctx() as conn:
                     row = conn.execute(
                         "SELECT doc, metadata FROM sessions WHERE notebook_id = ?",
                         (session_id,),
