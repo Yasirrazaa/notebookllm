@@ -183,11 +183,6 @@ def create_app(session_manager: SessionManager | None = None):
         return f"Loaded {len(doc.cells)} cells from {filepath}. Session: {session_id}"
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-    def load_notebook(filepath: str) -> str:
-        """Alias for load()."""
-        return load(filepath)
-
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def create(source_format: str | None = None) -> str:
         """Create a new empty notebook session."""
         session_id = str(uuid.uuid4())
@@ -195,11 +190,6 @@ def create_app(session_manager: SessionManager | None = None):
         session_manager.store(session_id, doc)
         _enforce_session_limit(session_manager, kernel_pool)
         return f"Created empty notebook. Session: {session_id}"
-
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-    def create_notebook(source_format: str | None = None) -> str:
-        """Alias for create()."""
-        return create(source_format)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def list_sessions() -> str:
@@ -226,11 +216,6 @@ def create_app(session_manager: SessionManager | None = None):
             return "No filepath specified and none set in session."
         dump_file(doc, filepath)
         return f"Saved to {filepath}"
-
-    @mcp.tool(annotations=ToolAnnotations(destructiveHint=True))
-    def save_notebook(session_id: str, output_filepath: str | None = None) -> str:
-        """Alias for save()."""
-        return save(session_id, output_filepath)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def to_text(session_id: str, mode: str = "minimal", max_tokens: int | None = None) -> str:
@@ -362,11 +347,6 @@ def create_app(session_manager: SessionManager | None = None):
         except Exception as e:
             return f"Error converting format: {e}"
 
-    @mcp.tool(annotations=ToolAnnotations(destructiveHint=False))
-    def convert_format(session_id: str, output_filepath: str, target_format: str) -> str:
-        """Alias for convert()."""
-        return convert(session_id, output_filepath, target_format)
-
     @mcp.tool(annotations=ToolAnnotations(destructiveHint=True))
     async def execute(session_id: str, index: int, timeout: int = 60) -> str:
         """Execute a code cell via Jupyter kernel (requires notebookllm[execute])."""
@@ -385,11 +365,6 @@ def create_app(session_manager: SessionManager | None = None):
             return str(e)
 
     @mcp.tool(annotations=ToolAnnotations(destructiveHint=True))
-    async def execute_cell(session_id: str, index: int, timeout: int = 60) -> str:
-        """Alias for execute()."""
-        return await execute(session_id, index, timeout)
-
-    @mcp.tool(annotations=ToolAnnotations(destructiveHint=True))
     async def execute_all(session_id: str, timeout: int = 60) -> str:
         """Execute all code cells sequentially."""
         doc = _get_doc_safe(session_manager, session_id)
@@ -401,11 +376,6 @@ def create_app(session_manager: SessionManager | None = None):
             return await kernel_pool.execute_all_cells(session_id, doc.cells, timeout=timeout)
         except Exception as e:
             return str(e)
-
-    @mcp.tool(annotations=ToolAnnotations(destructiveHint=True))
-    async def execute_all_cells(session_id: str, timeout: int = 60) -> str:
-        """Alias for execute_all()."""
-        return await execute_all(session_id, timeout)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def list_kernels() -> str:
@@ -485,6 +455,18 @@ def create_app(session_manager: SessionManager | None = None):
         text1 = doc1.to_text(mode=OutputMode.MINIMAL).splitlines(keepends=True)
         text2 = doc2.to_text(mode=OutputMode.MINIMAL).splitlines(keepends=True)
         return "".join(difflib.unified_diff(text1, text2, fromfile=session_id1, tofile=session_id2))
+
+    # ── Aliases ────────────────────────────────────────────────
+    # Register backward-compatible alias names for tools.
+    for alias_name, target_fn in {
+        "load_notebook": load,
+        "create_notebook": create,
+        "save_notebook": save,
+        "convert_format": convert,
+        "execute_cell": execute,
+        "execute_all_cells": execute_all,
+    }.items():
+        mcp.tool(name=alias_name)(target_fn)
 
     return mcp
 

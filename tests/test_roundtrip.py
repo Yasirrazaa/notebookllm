@@ -1,6 +1,8 @@
 """Round-trip fidelity tests — format A → NotebookDocument → format A preserves content."""
 from pathlib import Path
 
+import pytest
+
 from notebookllm.loaders import dump_file, load_file
 from notebookllm.loaders.ipynb import IpynbDumper, IpynbLoader
 from notebookllm.loaders.markdown import MarkdownDumper, MarkdownLoader
@@ -12,18 +14,70 @@ from notebookllm.models import Cell, CellType, NotebookDocument
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
-class TestIpynbRoundtrip:
-    """Round-trip .ipynb → dump → load preserves content."""
+def _assert_cells_match(doc1: NotebookDocument, doc2: NotebookDocument) -> None:
+    """Assert that two notebooks have matching cell types and sources."""
+    assert len(doc2.cells) == len(doc1.cells), (
+        f"Cell count mismatch: {len(doc2.cells)} vs {len(doc1.cells)}"
+    )
+    for i, (c1, c2) in enumerate(zip(doc1.cells, doc2.cells, strict=True)):
+        assert c1.cell_type == c2.cell_type, f"Cell {i}: type {c1.cell_type} vs {c2.cell_type}"
+        assert c1.source.strip() == c2.source.strip(), (
+            f"Cell {i}: source mismatch\n  Expected: {c1.source!r}\n  Got:      {c2.source!r}"
+        )
 
-    def test_roundtrip_via_dispatch(self, tmp_path):
-        doc = load_file(FIXTURES / "sample.ipynb")
-        out = tmp_path / "roundtrip.ipynb"
-        dump_file(doc, out)
-        doc2 = load_file(out)
-        assert len(doc2.cells) == len(doc.cells)
-        for c1, c2 in zip(doc.cells, doc2.cells, strict=True):
-            assert c1.cell_type == c2.cell_type
-            assert c1.source == c2.source
+
+# ── Parametrized dispatch round-trips ────────────────────────
+
+ROUNDTRIP_CASES = [
+    ("sample.ipynb", ".ipynb", "ipynb"),
+    ("sample_percent.py", ".py", "percent"),
+    ("sample_quarto.qmd", ".qmd", "quarto"),
+    ("sample_markdown.md", ".md", "markdown"),
+    ("sample_rmarkdown.Rmd", ".Rmd", "rmarkdown"),
+    ("sample_marimo.py", ".py", "marimo"),
+]
+
+
+@pytest.mark.parametrize("fixture_name,ext,expected_format", ROUNDTRIP_CASES)
+def test_roundtrip_via_dispatch(fixture_name, ext, expected_format, tmp_path):
+    """Parametrized round-trip: load fixture → dump → load → verify cell count and sources match."""
+    doc = load_file(FIXTURES / fixture_name)
+    out = tmp_path / f"roundtrip{ext}"
+    dump_file(doc, out)
+    doc2 = load_file(out)
+    assert len(doc2.cells) == len(doc.cells)
+    for c1, c2 in zip(doc.cells, doc2.cells, strict=True):
+        assert c1.cell_type == c2.cell_type
+        assert c1.source.strip() == c2.source.strip()
+
+
+# ── Parametrized cross-format conversions ────────────────────
+
+CROSS_FORMAT_CASES = [
+    ("sample.ipynb", "percent", ".py", "percent"),
+    ("sample.ipynb", "quarto", ".qmd", "quarto"),
+    ("sample_percent.py", "ipynb", ".ipynb", "ipynb"),
+    ("sample_percent.py", "markdown", ".md", "markdown"),
+    ("sample_quarto.qmd", "percent", ".py", "percent"),
+    ("sample_markdown.md", "ipynb", ".ipynb", "ipynb"),
+]
+
+
+@pytest.mark.parametrize("fixture_name,target_fmt,ext,expected_format", CROSS_FORMAT_CASES)
+def test_cross_format(fixture_name, target_fmt, ext, expected_format, tmp_path):
+    """Parametrized cross-format: load from one format → dump to another → verify cells match."""
+    doc = load_file(FIXTURES / fixture_name)
+    out = tmp_path / f"converted{ext}"
+    dump_file(doc, out, fmt=target_fmt)
+    doc2 = load_file(out)
+    assert doc2.source_format == expected_format
+    _assert_cells_match(doc, doc2)
+
+
+# ── Format-specific round-trip details ───────────────────────
+
+class TestIpynbRoundtrip:
+    """Detailed .ipynb round-trip tests."""
 
     def test_roundtrip_single_code_cell(self, tmp_path):
         loader = IpynbLoader()
@@ -54,17 +108,7 @@ class TestIpynbRoundtrip:
 
 
 class TestPercentRoundtrip:
-    """Round-trip percent format — load → dump → load preserves content."""
-
-    def test_roundtrip_via_dispatch(self, tmp_path):
-        doc = load_file(FIXTURES / "sample_percent.py")
-        out = tmp_path / "roundtrip.py"
-        dump_file(doc, out)
-        doc2 = load_file(out)
-        assert len(doc2.cells) == len(doc.cells)
-        for c1, c2 in zip(doc.cells, doc2.cells, strict=True):
-            assert c1.cell_type == c2.cell_type
-            assert c1.source.strip() == c2.source.strip()
+    """Detailed percent format round-trip tests."""
 
     def test_roundtrip_single_code_cell(self):
         loader = PercentLoader()
@@ -100,14 +144,7 @@ class TestPercentRoundtrip:
 
 
 class TestQuartoRoundtrip:
-    """Round-trip quarto format — load → dump → load preserves content."""
-
-    def test_roundtrip_via_dispatch(self, tmp_path):
-        doc = load_file(FIXTURES / "sample_quarto.qmd")
-        out = tmp_path / "roundtrip.qmd"
-        dump_file(doc, out)
-        doc2 = load_file(out)
-        assert len(doc2.cells) == len(doc.cells)
+    """Detailed quarto format round-trip tests."""
 
     def test_roundtrip_code_and_markdown(self):
         loader = QuartoLoader()
@@ -133,14 +170,7 @@ class TestQuartoRoundtrip:
 
 
 class TestMarkdownRoundtrip:
-    """Round-trip markdown format — load → dump → load preserves content."""
-
-    def test_roundtrip_via_dispatch(self, tmp_path):
-        doc = load_file(FIXTURES / "sample_markdown.md")
-        out = tmp_path / "roundtrip.md"
-        dump_file(doc, out)
-        doc2 = load_file(out)
-        assert len(doc2.cells) == len(doc.cells)
+    """Detailed markdown format round-trip tests."""
 
     def test_roundtrip_code_only(self):
         loader = MarkdownLoader()
@@ -163,14 +193,7 @@ class TestMarkdownRoundtrip:
 
 
 class TestRMarkdownRoundtrip:
-    """Round-trip RMarkdown format — load → dump → load preserves content."""
-
-    def test_roundtrip_via_dispatch(self, tmp_path):
-        doc = load_file(FIXTURES / "sample_rmarkdown.Rmd")
-        out = tmp_path / "roundtrip.Rmd"
-        dump_file(doc, out)
-        doc2 = load_file(out)
-        assert len(doc2.cells) == len(doc.cells)
+    """Detailed RMarkdown format round-trip tests."""
 
     def test_roundtrip_code_and_markdown(self):
         loader = RMarkdownLoader()
@@ -183,70 +206,6 @@ class TestRMarkdownRoundtrip:
         assert len(doc2.cells) == 2
         assert doc2.cells[0].source == "# Title"
         assert doc2.cells[1].source == "x <- 1"
-
-
-def _assert_cells_match(doc1: NotebookDocument, doc2: NotebookDocument) -> None:
-    """Assert that two notebooks have matching cell types and sources."""
-    assert len(doc2.cells) == len(doc1.cells), (
-        f"Cell count mismatch: {len(doc2.cells)} vs {len(doc1.cells)}"
-    )
-    for i, (c1, c2) in enumerate(zip(doc1.cells, doc2.cells, strict=True)):
-        assert c1.cell_type == c2.cell_type, f"Cell {i}: type {c1.cell_type} vs {c2.cell_type}"
-        assert c1.source.strip() == c2.source.strip(), (
-            f"Cell {i}: source mismatch\n  Expected: {c1.source!r}\n  Got:      {c2.source!r}"
-        )
-
-
-class TestCrossFormatRoundtrip:
-    """Conversion between formats — load from one format, dump to another, verify."""
-
-    def test_ipynb_to_percent(self, tmp_path):
-        doc = load_file(FIXTURES / "sample.ipynb")
-        out = tmp_path / "converted.py"
-        dump_file(doc, out)
-        doc2 = load_file(out)
-        assert doc2.source_format == "percent"
-        _assert_cells_match(doc, doc2)
-
-    def test_ipynb_to_quarto(self, tmp_path):
-        doc = load_file(FIXTURES / "sample.ipynb")
-        out = tmp_path / "converted.qmd"
-        dump_file(doc, out)
-        doc2 = load_file(out)
-        assert doc2.source_format == "quarto"
-        _assert_cells_match(doc, doc2)
-
-    def test_percent_to_ipynb(self, tmp_path):
-        doc = load_file(FIXTURES / "sample_percent.py")
-        out = tmp_path / "converted.ipynb"
-        dump_file(doc, out)
-        doc2 = load_file(out)
-        assert doc2.source_format == "ipynb"
-        _assert_cells_match(doc, doc2)
-
-    def test_percent_to_markdown(self, tmp_path):
-        doc = load_file(FIXTURES / "sample_percent.py")
-        out = tmp_path / "converted.md"
-        dump_file(doc, out)
-        doc2 = load_file(out)
-        assert doc2.source_format == "markdown"
-        _assert_cells_match(doc, doc2)
-
-    def test_quarto_to_percent(self, tmp_path):
-        doc = load_file(FIXTURES / "sample_quarto.qmd")
-        out = tmp_path / "converted.py"
-        dump_file(doc, out)
-        doc2 = load_file(out)
-        assert doc2.source_format == "percent"
-        _assert_cells_match(doc, doc2)
-
-    def test_markdown_to_ipynb(self, tmp_path):
-        doc = load_file(FIXTURES / "sample_markdown.md")
-        out = tmp_path / "converted.ipynb"
-        dump_file(doc, out)
-        doc2 = load_file(out)
-        assert doc2.source_format == "ipynb"
-        _assert_cells_match(doc, doc2)
 
 
 class TestNotebookDocumentRoundtrip:
@@ -275,15 +234,3 @@ class TestNotebookDocumentRoundtrip:
         assert "# %% [code]" in text
         assert "# %% [markdown]" in text
         assert "print(1)" in text
-
-
-class TestMarimoRoundtrip:
-    def test_roundtrip_via_dispatch(self, tmp_path):
-        doc = load_file(FIXTURES / "sample_marimo.py")
-        out = tmp_path / "roundtrip.py"
-        dump_file(doc, out)
-        doc2 = load_file(out)
-        assert len(doc2.cells) == len(doc.cells)
-        for c1, c2 in zip(doc.cells, doc2.cells, strict=True):
-            assert c1.cell_type == c2.cell_type
-            assert c1.source.strip() == c2.source.strip()

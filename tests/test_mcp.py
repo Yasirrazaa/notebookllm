@@ -5,7 +5,6 @@ import pytest
 from mcp.server.fastmcp.exceptions import ToolError
 
 from notebookllm.mcp.server import MAX_SESSIONS, create_app
-from notebookllm.mcp.session import SessionManager
 from notebookllm.models import Cell, CellType, NotebookDocument
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -25,24 +24,14 @@ def _get_text(result) -> str:
 
 
 @pytest.fixture
-def session_manager(tmp_path):
-    db_path = tmp_path / "test_mcp_sessions.db"
-    return SessionManager(db_path=db_path)
-
-
-@pytest.fixture
 def app(session_manager):
     return create_app(session_manager)
 
 
 @pytest.fixture
-def session_with_cells(session_manager):
+def session_with_cells(session_manager, sample_doc):
     """Pre-populate session with a sample notebook."""
-    doc = NotebookDocument()
-    doc.add_cell(Cell(cell_type=CellType.CODE, source="x = 1", execution_count=1))
-    doc.add_cell(Cell(cell_type=CellType.MARKDOWN, source="# Title"))
-    doc.add_cell(Cell(cell_type=CellType.CODE, source="print('hello')", execution_count=2))
-    session_manager.store("test-session", doc, filepath="/tmp/test.ipynb")
+    session_manager.store("test-session", sample_doc, filepath="/tmp/test.ipynb")
     return session_manager
 
 

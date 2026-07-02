@@ -6,68 +6,62 @@ from notebookllm.mcp.session import SessionManager
 from notebookllm.models import Cell, CellType, NotebookDocument
 
 
-@pytest.fixture
-def manager(tmp_path):
-    db_path = tmp_path / "test_sessions.db"
-    return SessionManager(db_path=db_path)
-
-
 class TestSessionManager:
-    def test_store_and_get(self, manager):
+    def test_store_and_get(self, session_manager):
         doc = NotebookDocument()
         doc.add_cell(Cell(cell_type=CellType.CODE, source="x = 1"))
-        manager.store("session-1", doc, filepath="/tmp/test.ipynb")
-        result = manager.get("session-1")
+        session_manager.store("session-1", doc, filepath="/tmp/test.ipynb")
+        result = session_manager.get("session-1")
         assert result is doc
         assert len(result.cells) == 1
 
-    def test_get_nonexistent(self, manager):
+    def test_get_nonexistent(self, session_manager):
         with pytest.raises(KeyError):
-            manager.get("missing")
+            session_manager.get("missing")
 
-    def test_delete(self, manager):
+    def test_delete(self, session_manager):
         doc = NotebookDocument()
-        manager.store("session-1", doc)
-        manager.delete("session-1")
+        session_manager.store("session-1", doc)
+        session_manager.delete("session-1")
         with pytest.raises(KeyError):
-            manager.get("session-1")
+            session_manager.get("session-1")
 
-    def test_delete_nonexistent(self, manager):
+    def test_delete_nonexistent(self, session_manager):
         with pytest.raises(KeyError):
-            manager.delete("missing")
+            session_manager.delete("missing")
 
-    def test_list_sessions(self, manager):
+    def test_list_sessions(self, session_manager):
         doc = NotebookDocument()
-        manager.store("s1", doc)
-        manager.store("s2", doc)
-        sessions = manager.list_sessions()
+        session_manager.store("s1", doc)
+        session_manager.store("s2", doc)
+        sessions = session_manager.list_sessions()
         assert "s1" in sessions
         assert "s2" in sessions
         assert len(sessions) == 2
 
-    def test_store_replaces_existing(self, manager):
+    def test_store_replaces_existing(self, session_manager):
         doc1 = NotebookDocument()
         doc1.add_cell(Cell(cell_type=CellType.CODE, source="x = 1"))
         doc2 = NotebookDocument()
         doc2.add_cell(Cell(cell_type=CellType.CODE, source="y = 2"))
-        manager.store("s1", doc1)
-        manager.store("s1", doc2)
-        result = manager.get("s1")
+        session_manager.store("s1", doc1)
+        session_manager.store("s1", doc2)
+        result = session_manager.get("s1")
         assert result.cells[0].source == "y = 2"
 
-    def test_get_filepath(self, manager):
+    def test_get_filepath(self, session_manager):
         doc = NotebookDocument()
-        manager.store("s1", doc, filepath="/tmp/test.ipynb")
-        assert manager.get_filepath("s1") == "/tmp/test.ipynb"
+        session_manager.store("s1", doc, filepath="/tmp/test.ipynb")
+        assert session_manager.get_filepath("s1") == "/tmp/test.ipynb"
 
-    def test_get_filepath_none(self, manager):
+    def test_get_filepath_none(self, session_manager):
         doc = NotebookDocument()
-        manager.store("s1", doc)
-        assert manager.get_filepath("s1") is None
+        session_manager.store("s1", doc)
+        assert session_manager.get_filepath("s1") is None
 
-    def test_get_filepath_nonexistent(self, manager):
+    def test_get_filepath_nonexistent(self, session_manager):
         with pytest.raises(KeyError, match="Session not found"):
-            manager.get_filepath("missing")
+            session_manager.get_filepath("missing")
 
 
 class TestSQLitePersistence:
@@ -80,7 +74,6 @@ class TestSQLitePersistence:
         doc1.add_cell(Cell(cell_type=CellType.CODE, source="x = 1"))
         m1.store("s1", doc1, filepath="/tmp/test.ipynb")
 
-        # Destroy m1, create m2 pointing at same DB
         del m1
         m2 = SessionManager(db_path=db_path)
 
@@ -88,7 +81,7 @@ class TestSQLitePersistence:
         restored = m2.get("s1")
         assert restored.cells[0].source == "x = 1"
 
-    def test_mutiple_sessions(self, tmp_path):
+    def test_multiple_sessions(self, tmp_path):
         db_path = tmp_path / "multi.db"
         m1 = SessionManager(db_path=db_path)
         for i in range(3):
