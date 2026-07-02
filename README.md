@@ -6,7 +6,7 @@
 
 Convert, inspect, and optimize Jupyter notebooks for Large Language Models.
 
-`notebookllm` provides a universal notebook representation that works across multiple formats — `.ipynb`, percent scripts (`.py`), Quarto (`.qmd`), Markdown (`.md`), and Marimo (`.py`). It includes a CLI, a Python API, and an MCP server for LLM-native notebook manipulation.
+`notebookllm` provides a universal notebook representation that works across multiple formats — `.ipynb`, percent scripts (`.py`), Quarto (`.qmd`), Markdown (`.md`), Marimo (`.py`), Deepnote (`.deepnote`), and R Markdown (`.Rmd`). It includes a CLI, a Python API, and an MCP server for LLM-native notebook manipulation.
 
 ## Why?
 
@@ -15,11 +15,12 @@ LLMs struggle with raw `.ipynb` files — the verbose JSON structure, metadata, 
 ## Features
 
 - **Multi-format support**: Load and save `.ipynb`, percent scripts (`# %%`), Quarto, Markdown, Marimo, Deepnote (`.deepnote`), and R Markdown formats.
-- **LLM-optimized output**: Three verbosity modes — `minimal` (source only), `standard` (+ execution counts, tags), `full` (+ cell outputs).
-- **CLI tools**: Convert between formats, inspect notebook structure, search cell contents, extract individual cells.
-- **MCP server**: Expose notebook operations as tools for LLMs (session-based, with cell CRUD, search, and execution).
-- **Streaming**: Load notebooks larger than 10 MB via `ijson` streaming (optional `[stream]` extra).
-- **Cell execution**: Execute code cells via Jupyter kernels (optional `[execute]` extra).
+- **LLM-optimized output**: Four verbosity modes — `minimal` (source only), `standard` (+ execution counts, tags), `full` (+ cell outputs), `token-budget` (drops cells to stay within a token limit).
+- **Token counting**: Measure token usage per notebook and per cell using tiktoken (GPT-4 encoding) or built-in fallback. Supports per-cell breakdown and budget-based cell dropping.
+- **CLI tools**: Convert between formats (including batch), inspect notebook structure, search cell contents, extract individual cells, estimate token usage.
+- **MCP server**: Expose notebook operations as tools, resources, and prompts for LLMs (session-based, with cell CRUD, search, and execution).
+- **Streaming**: Load notebooks larger than 10 MB via `ijson` streaming.
+- **Cell execution**: Execute code cells via Jupyter kernels.
 
 ## Installation
 
@@ -27,16 +28,18 @@ LLMs struggle with raw `.ipynb` files — the verbose JSON structure, metadata, 
 pip install notebookllm
 ```
 
-With extras:
+The base install includes all core features: format conversion, streaming for large notebooks, and cell execution via Jupyter kernels.
+
+Optional extras for CLI, MCP server, and advanced token counting:
 
 ```bash
 pip install notebookllm[cli]      # CLI tools (click, rich)
-pip install notebookllm[mcp]      # MCP server
-pip install notebookllm[execute]  # Cell execution via jupyter_client
-pip install notebookllm[stream]   # Streaming for large notebooks (ijson)
-pip install notebookllm[token]    # Token estimation via tiktoken
+pip install notebookllm[mcp]      # MCP server (mcp[cli])
+pip install notebookllm[token]    # Accurate token counting via tiktoken
 pip install notebookllm[all]      # Everything above
 ```
+
+> **Note**: Without the `[token]` extra, token counting uses a built-in `len(text)/4` heuristic which is fast but less accurate. With `[token]`, it uses tiktoken's `cl100k_base` encoding (GPT-4 family).
 
 ## CLI Usage
 
@@ -70,12 +73,12 @@ notebookllm inspect notebook.ipynb
 
 # Search cells by content
 notebookllm search notebook.ipynb "import pandas"
-notebookllm search notebook.ipynb "def train" --type code
+notebookllm search notebook.ipynb "def train" -t code
 
 # Extract a specific cell
 notebookllm get notebook.ipynb 3
 
-# Estimate token usage (requires [token] extra)
+# Estimate token usage
 notebookllm tokens notebook.ipynb
 notebookllm tokens notebook.ipynb -m full --breakdown
 
@@ -86,7 +89,7 @@ notebookllm server
 notebookllm server --transport sse
 ```
 
-Output formats: `ipynb`, `percent` (`# %%` markers), `quarto` (`.qmd`), `markdown`, `marimo`, `rmarkdown` (`.Rmd`), `script` (flat `.py` export).
+Output formats: `ipynb`, `percent` (`# %%` markers), `quarto` (`.qmd`), `markdown`, `marimo`, `rmarkdown` (`.Rmd`), `deepnote` (`.deepnote`), `script` (flat `.py` export).
 
 ## Python API
 
@@ -109,6 +112,16 @@ for i, cell in enumerate(doc.cells):
 text = doc.to_text(mode=OutputMode.MINIMAL)
 text = doc.to_text(mode=OutputMode.STANDARD)  # + execution counts
 text = doc.to_text(mode=OutputMode.FULL)      # + cell outputs
+
+# Token-budget mode: drop cells to stay within a token limit
+text = doc.to_text(mode="token-budget", max_tokens=5000)
+
+# Token counting
+from notebookllm import tokenize_notebook, count_tokens
+report = tokenize_notebook(doc, mode="minimal")
+print(f"Total: {report.total_tokens} tokens across {len(report.cell_tokens)} cells")
+for ct in report.cell_tokens:
+    print(f"  [{ct.index}] {ct.cell_type}: {ct.tokens} tokens")
 
 # Manipulate cells
 cell = Cell(cell_type=CellType.CODE, source="print('hello')")
@@ -140,11 +153,11 @@ dump_file(doc, "output.py")
 doc = loads_text("# %% [code]\nx = 1\n")
 ```
 
-Supported formats: `ipynb`, `percent`, `quarto`, `markdown`, `marimo`, `rmarkdown`, `script`.
+Supported formats: `ipynb`, `percent`, `quarto`, `markdown`, `marimo`, `rmarkdown`, `deepnote`, `script`.
 
 ## MCP Server
 
-`notebookllm` includes a built-in MCP (Model Context Protocol) server that exposes notebook operations as tools for LLM clients (Claude Desktop, VS Code, Zed, etc.).
+`notebookllm` includes a built-in MCP (Model Context Protocol) server that exposes notebook operations as tools, resources, and prompts for LLM clients (Claude Desktop, VS Code, Zed, etc.).
 
 ### Starting the Server
 
@@ -202,29 +215,46 @@ uvx notebookllm-server
 }
 ```
 
-### Available Tools
+### Tools (18 unique, 26 total with aliases)
 
-| Tool | Purpose |
-|------|---------|
-| `create` | Create a new empty notebook session (alias: `create_notebook`) |
-| `load` | Load a notebook into a session (alias: `load_notebook`) |
-| `save` | Save the session notebook to file (alias: `save_notebook`) |
-| `convert` | Convert a session's notebook to another format (alias: `convert_format`) |
-| `to_text` | Convert session notebook to LLM-optimized text (modes: minimal, standard, full) |
-| `list_sessions` | List all active notebook sessions |
-| `list_cells` | List all cells with index, type, and preview |
-| `get_cell` | Get a specific cell by index |
-| `add_cell` | Add a new code, markdown, or raw cell |
-| `edit_cell` | Edit an existing cell's source and/or type |
-| `delete_cell` | Delete a cell by index |
-| `move_cell` | Move a cell from one position to another |
-| `search_cells` | Search cells by content (case-insensitive) |
-| `execute` | Execute a code cell via async Jupyter kernel (alias: `execute_cell`) |
-| `execute_all` | Execute all code cells sequentially (alias: `execute_all_cells`) |
-| `list_kernels` | List available kernels from jupyter kernelspec |
-| `fingerprint` | Provide a concise summary/fingerprint of a notebook session |
-| `diff` | Compare the minimal text representation of two notebook sessions |
-| `count_tokens` | Count tokens in the session notebook (modes: minimal, standard, full) |
+| Tool | Description | Destructive |
+|------|-------------|:---:|
+| `load` / `load_notebook` | Load a notebook file into a session | No |
+| `create` / `create_notebook` | Create a new empty notebook session | No |
+| `list_sessions` | List all active sessions | No |
+| `close_session` | Close a session and clean up its kernel | No |
+| `save` / `save_notebook` | Save session to file | Yes |
+| `to_text` | Convert session to LLM-optimized text (supports `max_tokens` for budget mode) | No |
+| `list_cells` | List cells with index, type, and preview | No |
+| `get_cell` | Get a specific cell by index | No |
+| `add_cell` | Add a new cell at a position | No |
+| `edit_cell` | Edit an existing cell | Yes |
+| `delete_cell` | Delete a cell by index | Yes |
+| `move_cell` | Move a cell to another position | No |
+| `search_cells` | Search cells by content (case-insensitive) | No |
+| `count_tokens` | Count tokens in the session notebook | No |
+| `convert` / `convert_format` | Convert session to another format | No |
+| `execute` / `execute_cell` | Execute a single code cell via Jupyter kernel | Yes |
+| `execute_all` / `execute_all_cells` | Execute all code cells sequentially | Yes |
+| `list_kernels` | List available Jupyter kernels | No |
+| `fingerprint` | Summary/fingerprint of a notebook session | No |
+| `diff` | Compare two sessions text | No |
+
+### Resources
+
+| URI | Description |
+|-----|-------------|
+| `notebook://{session_id}` | Full notebook as minimal-mode LLM text |
+| `notebook://{session_id}/cells` | Cell listing with index, type, and preview |
+| `notebook://{session_id}/cells/{index}` | Specific cell source |
+
+### Prompts
+
+| Prompt | Description |
+|--------|-------------|
+| `summarize_notebook(session_id)` | Summarize a notebook session's contents and purpose |
+| `review_code(session_id)` | Review code quality in a notebook session |
+| `explain_notebook(session_id)` | Explain a notebook step by step |
 
 ## Development
 

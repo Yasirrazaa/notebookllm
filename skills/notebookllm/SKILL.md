@@ -1,17 +1,18 @@
 ---
 name: notebookllm
-description: Convert, inspect, and optimize Jupyter notebooks for LLM consumption. Supports 9 formats (ipynb, percent, marimo, quarto, markdown, rmarkdown, script, deepnote). Exposes a full MCP server with tools, resources, and prompts for programmatic notebook operations.
+description: Convert, inspect, and optimize Jupyter notebooks for LLM consumption. Supports 8 formats (ipynb, percent, marimo, quarto, markdown, rmarkdown, deepnote, script). Exposes a full MCP server with tools, resources, and prompts for programmatic notebook operations.
 ---
 
 # notebookllm
 
-CLI tool and Python library for converting and optimizing Jupyter notebooks for LLM consumption. Supports 9 notebook formats, session-based editing, and an MCP server.
+CLI tool and Python library for converting and optimizing Jupyter notebooks for LLM consumption. Supports 8 notebook formats, session-based editing, token counting with budget mode, and an MCP server.
 
 ## Triggers
 
 Use when the user asks to:
 - convert a notebook to or from any supported format (including batch convert)
-- optimize a notebook for LLM input (minimal/standard/full output modes)
+- optimize a notebook for LLM input (minimal/standard/full/token-budget output modes)
+- count tokens in a notebook or control output size with a token budget
 - inspect notebook structure (cells, types, imports, functions)
 - search notebook cells by content (optionally by cell type)
 - get, add, edit, delete, or move cells by index
@@ -25,10 +26,15 @@ Use when the user asks to:
 
 Convert notebook files to LLM-optimized text or between formats.
 
-**Examples:**
 ```bash
-# Single file to LLM-optimized text (stdout, minimal mode)
+# Single file to stdout (minimal mode)
 notebookllm convert notebook.ipynb
+
+# Single file to file with explicit format
+notebookllm convert notebook.ipynb -o notebook.py -f percent
+
+# Full output mode (includes cell outputs)
+notebookllm convert notebook.ipynb -m full
 
 # Batch convert: multiple files to stdout
 notebookllm convert a.ipynb b.qmd c.py
@@ -36,14 +42,8 @@ notebookllm convert a.ipynb b.qmd c.py
 # Batch convert: multiple files to output directory
 notebookllm convert a.ipynb b.qmd --outdir ./out
 
-# Convert to percent .py format
-notebookllm convert notebook.ipynb -o notebook.py -f percent
-
-# Full output mode (includes cell outputs)
-notebookllm convert notebook.ipynb -m full
-
-# Convert quarto to markdown
-notebookllm convert analysis.qmd -o output.md -f markdown
+# Batch convert with specific format
+notebookllm convert a.ipynb b.qmd --outdir ./out -f markdown
 ```
 
 ### `notebookllm inspect`
@@ -59,10 +59,7 @@ notebookllm inspect notebook.ipynb
 Search cells by content. Optionally filter by cell type.
 
 ```bash
-# Search all cells for "pandas"
 notebookllm search notebook.ipynb pandas
-
-# Search only code cells
 notebookllm search notebook.py "import" -t code
 ```
 
@@ -74,16 +71,28 @@ Get a specific cell by index (0-based).
 notebookllm get notebook.ipynb 5
 ```
 
+### `notebookllm tokens`
+
+Estimate token usage for a notebook. Uses tiktoken (cl100k_base) when available, falls back to len/4 heuristic.
+
+```bash
+# Total token count (minimal mode)
+notebookllm tokens notebook.ipynb
+
+# Full mode with all outputs
+notebookllm tokens notebook.ipynb -m full
+
+# Per-cell breakdown table
+notebookllm tokens notebook.ipynb --breakdown
+```
+
 ### `notebookllm server`
 
 Start the MCP server for AI agent integration.
 
 ```bash
-# Stdio transport (default)
-notebookllm server
-
-# SSE transport
-notebookllm server --transport sse
+notebookllm server              # stdio transport (default)
+notebookllm server --transport sse  # SSE transport
 ```
 
 ## Supported Formats
@@ -92,7 +101,7 @@ notebookllm server --transport sse
 |-----------|--------|------|------|
 | `.ipynb` | Jupyter Notebook | ✅ | ✅ |
 | `.py` (percent) | Python with `# %%` markers | ✅ | ✅ |
-| `.py` (marimo) | Marimo notebooks (`@app.cell`) | ✅ | ❌ |
+| `.py` (marimo) | Marimo notebooks (`@app.cell`) | ✅ | ✅ |
 | `.qmd` | Quarto documents | ✅ | ✅ |
 | `.md` | Markdown with code blocks | ✅ | ✅ |
 | `.rmd` | R Markdown | ✅ | ✅ |
@@ -106,7 +115,20 @@ Used with `notebookllm convert` for LLM-optimized text:
 - **standard** — Cell markers + source + metadata (type, execution count, tags).
 - **full** — Cell markers + source + metadata + execution outputs.
 - **token-budget** — Drops cells to stay within a max_tokens budget. Prioritizes markdown, then code with outputs, then bare code.
-- **max_tokens** — Integer token budget for the token-budget mode.
+
+## Token Counting
+
+The token feature measures notebook token consumption for LLM context planning.
+
+**Three entry points:**
+
+- **CLI**: `notebookllm tokens <file>` — prints "Total: N tokens across M cells". Add `--breakdown` for a per-cell table.
+- **MCP**: `count_tokens(session_id, mode)` — returns the summary string.
+- **Library**: `doc.token_breakdown(mode)` — returns a `NotebookTokenReport` with `total_tokens`, `cell_tokens` list, and `token_summary`.
+
+**Token budget mode** (`max_tokens=N`): When converting with `to_text(mode="token-budget", max_tokens=5000)`, the optimizer drops lowest-priority cells to stay within the budget. Drop priority: code without outputs (drop first) → code with outputs → markdown (keep longest).
+
+**Accuracy**: With `[token]` extra (tiktoken), uses GPT-4's cl100k_base encoding. Without it, uses `len(text)/4` heuristic.
 
 ## MCP Server
 
@@ -119,9 +141,9 @@ The MCP server (`notebookllm server`) exposes tools, resources, and prompts for 
 | `load` / `load_notebook` | Load a notebook file into session | No |
 | `create` / `create_notebook` | Create an empty notebook session | No |
 | `list_sessions` | List all active sessions | No |
-| `close_session` | Explicitly close a session | No |
+| `close_session` | Close a session and clean up its kernel | No |
 | `save` / `save_notebook` | Save session to file | Yes |
-| `to_text` | Convert session to LLM text | No |
+| `to_text` | Convert session to LLM text (supports `max_tokens` for budget mode) | No |
 | `list_cells` | List cells with index, type, preview | No |
 | `get_cell` | Get a specific cell by index | No |
 | `add_cell` | Add a new cell at position | No |
@@ -136,8 +158,6 @@ The MCP server (`notebookllm server`) exposes tools, resources, and prompts for 
 | `list_kernels` | List available Jupyter kernels | No |
 | `fingerprint` | Summary/fingerprint of a session | No |
 | `diff` | Compare two sessions text | No |
-
-All tools return plain text. Destructive tools are annotated with `destructiveHint=True`.
 
 ### Resources
 
@@ -170,6 +190,10 @@ text = doc.to_text(mode=OutputMode.MINIMAL)
 # Token-budget mode (keeps cells within budget)
 text = doc.to_text(mode="token-budget", max_tokens=2000)
 
+# Token counting
+report = doc.token_breakdown(mode="minimal")
+print(f"{report.total_tokens} tokens across {len(report.cell_tokens)} cells")
+
 # Edit cells
 cell = doc.get_cell(0)
 doc.edit_cell(0, source="new code")
@@ -182,7 +206,7 @@ doc.to_file("output.py", fmt="percent")
 ## Installation
 
 ```bash
-# Core (nbformat + pyyaml)
+# Core (nbformat + jupyter_client + ijson + pyyaml)
 pip install notebookllm
 
 # With CLI (rich, click)
@@ -191,8 +215,8 @@ pip install notebookllm[cli]
 # With MCP server
 pip install notebookllm[mcp]
 
-# With Jupyter kernel execution
-pip install notebookllm[execute]
+# With accurate token counting (tiktoken)
+pip install notebookllm[token]
 
 # All extras
 pip install notebookllm[all]
