@@ -233,15 +233,15 @@ def create_app(session_manager: SessionManager | None = None):
         return save(session_id, output_filepath)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-    def to_text(session_id: str, mode: str = "minimal") -> str:
-        """Convert notebook to LLM-optimized text."""
+    def to_text(session_id: str, mode: str = "minimal", max_tokens: int | None = None) -> str:
+        """Convert notebook to LLM-optimized text. Use mode='token-budget' with max_tokens to limit output size."""
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
         result = _validate_output_mode(mode)
         if isinstance(result, str):
             return result
-        return doc.to_text(mode=result)
+        return doc.to_text(mode=result, max_tokens=max_tokens)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def list_cells(session_id: str) -> str:

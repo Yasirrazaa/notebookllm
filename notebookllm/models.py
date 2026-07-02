@@ -176,11 +176,18 @@ class NotebookDocument:
 
         dump_file(self, filepath, fmt=fmt)
 
-    def to_text(self, mode: OutputMode = OutputMode.MINIMAL) -> str:
-        """Convert to LLM-optimized text."""
+    def to_text(
+        self, mode: OutputMode = OutputMode.MINIMAL, *, max_tokens: int | None = None
+    ) -> str:
+        """Convert to LLM-optimized text.
+
+        Args:
+            mode: Output verbosity level (minimal/standard/full/token-budget).
+            max_tokens: Optional token budget for token-budget mode.
+        """
         from notebookllm.converters.llm_optimizer import LLMOptimizer
 
-        optimizer = LLMOptimizer(mode=mode)
+        optimizer = LLMOptimizer(mode=mode, max_tokens=max_tokens)
         return optimizer.optimize(self)
 
     @classmethod
