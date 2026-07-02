@@ -7,7 +7,7 @@ name = "notebookllm"
 version = "3.0.0"
 description = "Convert and optimize Jupyter notebooks for LLMs"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.11"
 authors = [
     {name = "Yasir Raza", email = "yasirabdali6@gmail.com"},
@@ -15,17 +15,10 @@ authors = [
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-
-[project.urls]
-Homepage = "https://github.com/yasirrazaa/notebookllm"
-Repository = "https://github.com/yasirrazaa/notebookllm"
-Issues = "https://github.com/yasirrazaa/notebookllm/issues"
-Documentation = "https://yasirrazaa.github.io/notebookllm"
 dependencies = [
     "nbformat>=5.9",
     "jupyter_client>=8.0",
@@ -59,11 +52,16 @@ dev = [
     "sphinx>=7.0",
     "sphinx-rtd-theme>=2.0",
 ]
-
 docs = [
     "sphinx>=7.0",
     "sphinx-rtd-theme>=2.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/yasirrazaa/notebookllm"
+Repository = "https://github.com/yasirrazaa/notebookllm"
+Issues = "https://github.com/yasirrazaa/notebookllm/issues"
+Documentation = "https://yasirrazaa.github.io/notebookllm"
 
 [project.scripts]
 notebookllm = "notebookllm.cli.commands:cli"
@@ -89,4 +87,3 @@ select = ["E", "F", "I", "N", "UP", "B"]
 
 [tool.mypy]
 python_version = "3.11"
-
