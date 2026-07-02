@@ -32,3 +32,8 @@ htmlcov/
 .DS_Store
 Thumbs.db
 docs/_build/
+
+# Cloned reference repos (not part of this project)
+agentskills/
+modelcontextprotocol/
+.commandcode/

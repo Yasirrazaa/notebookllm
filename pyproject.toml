@@ -10,7 +10,7 @@ readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.11"
 authors = [
-    {name = "Yasir Raza", email = "yasir@example.com"},
+    {name = "Yasir Raza", email = "yasirabdali6@gmail.com"},
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -20,6 +20,12 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+
+[project.urls]
+Homepage = "https://github.com/yasirrazaa/notebookllm"
+Repository = "https://github.com/yasirrazaa/notebookllm"
+Issues = "https://github.com/yasirrazaa/notebookllm/issues"
+Documentation = "https://yasirrazaa.github.io/notebookllm"
 dependencies = [
     "nbformat>=5.9",
     "jupyter_client>=8.0",
