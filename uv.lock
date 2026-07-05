@@ -831,19 +831,19 @@ wheels = [
 
 [[package]]
 name = "notebookllm"
-version = "3.0.0"
+version = "2.0.0"
 source = { editable = "." }
 dependencies = [
+    { name = "ijson" },
+    { name = "jupyter-client" },
     { name = "nbformat" },
+    { name = "pyyaml" },
 ]
 
 [package.optional-dependencies]
 all = [
     { name = "click" },
-    { name = "ijson" },
-    { name = "jupyter-client" },
     { name = "mcp", extra = ["cli"] },
-    { name = "pyyaml" },
     { name = "rich" },
     { name = "tiktoken" },
 ]
@@ -857,55 +857,50 @@ dev = [
     { name = "pytest" },
     { name = "pytest-benchmark" },
     { name = "pytest-cov" },
+    { name = "rich" },
     { name = "ruff" },
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "sphinx-rtd-theme" },
+    { name = "tiktoken" },
 ]
 docs = [
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "sphinx-rtd-theme" },
 ]
-execute = [
-    { name = "jupyter-client" },
-]
 mcp = [
     { name = "mcp", extra = ["cli"] },
 ]
-stream = [
-    { name = "ijson" },
-]
 token = [
     { name = "tiktoken" },
-]
-yaml = [
-    { name = "pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "click", marker = "extra == 'cli'", specifier = ">=8.1" },
     { name = "click", marker = "extra == 'dev'", specifier = ">=8.1" },
-    { name = "ijson", marker = "extra == 'stream'", specifier = ">=3.5" },
-    { name = "jupyter-client", marker = "extra == 'execute'", specifier = ">=8.0" },
+    { name = "ijson", specifier = ">=3.5" },
+    { name = "jupyter-client", specifier = ">=8.0" },
     { name = "mcp", extras = ["cli"], marker = "extra == 'dev'", specifier = ">=1.8.1" },
     { name = "mcp", extras = ["cli"], marker = "extra == 'mcp'", specifier = ">=1.8.1" },
     { name = "nbformat", specifier = ">=5.9" },
-    { name = "notebookllm", extras = ["cli", "mcp", "execute", "stream", "yaml", "token"], marker = "extra == 'all'" },
+    { name = "notebookllm", extras = ["cli", "mcp", "token"], marker = "extra == 'all'" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-benchmark", marker = "extra == 'dev'", specifier = ">=4.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
-    { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "rich", marker = "extra == 'cli'", specifier = ">=13.0" },
+    { name = "rich", marker = "extra == 'dev'", specifier = ">=13.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1" },
     { name = "sphinx", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "sphinx", marker = "extra == 'docs'", specifier = ">=7.0" },
     { name = "sphinx-rtd-theme", marker = "extra == 'dev'", specifier = ">=2.0" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'", specifier = ">=2.0" },
+    { name = "tiktoken", marker = "extra == 'dev'", specifier = ">=0.7" },
     { name = "tiktoken", marker = "extra == 'token'", specifier = ">=0.7" },
 ]
-provides-extras = ["cli", "mcp", "execute", "stream", "yaml", "token", "all", "dev", "docs"]
+provides-extras = ["cli", "mcp", "token", "all", "dev", "docs"]
 
 [[package]]
 name = "packaging"

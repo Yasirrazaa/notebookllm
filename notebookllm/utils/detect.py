@@ -1,13 +1,40 @@
-"""Format detection for notebooks — extension and content sniffing."""
+"""Format detection for notebooks — file-extension mapping and content sniffing.
+
+Determines which notebook format a file or string is in by checking:
+
+- **File extension** (for :func:`detect_format`): ``.ipynb``, ``.qmd``, ``.rmd``,
+  ``.deepnote``, ``.md``, ``.py``.
+- **Content patterns** (for :func:`detect_text_format`): ``# %%`` markers,
+  ``import marimo``, `````{python}``` blocks, JSON structure, YAML structure.
+"""
 from __future__ import annotations
 
 from pathlib import Path
 
 
 def detect_format(filepath: Path, content: str | None = None) -> str:
-    """Detect notebook format from file extension and optionally content sniffing.
+    """Detect notebook format from a file path, optionally checking content.
 
-    Returns: "ipynb", "quarto", "markdown", "marimo", "deepnote", or "percent"
+    Detection priority:
+
+    1. ``.ipynb`` → ``"ipynb"``
+    2. ``.qmd`` → ``"quarto"``
+    3. ``.rmd`` → ``"rmarkdown"``
+    4. ``.deepnote`` → ``"deepnote"``
+    5. ``.md`` → ``"markdown"``
+    6. ``.py`` → Content-sniffed: ``"marimo"`` (if contains ``@app.cell``) or ``"percent"``
+
+    Args:
+        filepath: Path to the notebook file.
+        content: Optional file content for content-based disambiguation
+            (used to distinguish marimo from percent scripts).
+
+    Returns:
+        A format string: ``"ipynb"``, ``"quarto"``, ``"rmarkdown"``,
+        ``"deepnote"``, ``"markdown"``, ``"marimo"``, or ``"percent"``.
+
+    Raises:
+        ValueError: If the file extension is not recognized.
     """
     filepath = Path(filepath)
     ext = filepath.suffix.lower()
@@ -36,9 +63,25 @@ def detect_format(filepath: Path, content: str | None = None) -> str:
 
 
 def detect_text_format(content: str) -> str:
-    """Detect format from text content alone (content sniffing).
+    """Detect notebook format from text content alone (content sniffing).
 
-    Returns: "percent", "marimo", "quarto", "markdown", "ipynb"
+    Detection order:
+
+    1. ``"percent"`` — if any line starts with ``# %%``
+    2. ``"marimo"`` — if contains ``import marimo`` or ``@app.cell``
+    3. ``"rmarkdown"`` — if contains `````{r}```
+    4. ``"quarto"`` — if contains `````{python}```
+    5. ``"markdown"`` — if contains `````python```
+    6. ``"ipynb"`` — if content is JSON with ``cells`` and ``nbformat`` keys
+    7. ``"deepnote"`` — if content is YAML with ``project.notebooks``
+    8. ``"percent"`` — fallback for unrecognized text
+
+    Args:
+        content: The raw text content to sniff.
+
+    Returns:
+        A format string: ``"percent"``, ``"marimo"``, ``"rmarkdown"``,
+        ``"quarto"``, ``"markdown"``, ``"ipynb"``, or ``"deepnote"``.
     """
     lines = content.splitlines()
 

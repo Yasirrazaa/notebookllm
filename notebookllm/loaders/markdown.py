@@ -1,4 +1,9 @@
-"""Markdown format loader/dumper — .md files with Python code blocks."""
+"""Markdown format loader/dumper — ``.md`` files with fenced code blocks.
+
+Loads and saves notebooks as standard Markdown files. Code cells are
+stored as fenced code blocks with language tags. Markdown cells are
+stored as plain markdown text. Supports optional YAML frontmatter.
+"""
 from __future__ import annotations
 
 import re
@@ -14,18 +19,38 @@ FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
 
 class MarkdownLoader(BaseLoader):
-    """Load markdown files with embedded code blocks."""
+    """Load Markdown files with embedded fenced code blocks.
+
+    Code blocks with known languages (python, r, julia, javascript, etc.)
+    are treated as :attr:`~notebookllm.models.CellType.CODE` cells. Other
+    language blocks become :attr:`~notebookllm.models.CellType.RAW` cells.
+    """
 
     def load(self, source: str | Path) -> NotebookDocument:
+        """Load a Markdown notebook from a file.
+
+        Args:
+            source: Path to the ``.md`` file.
+
+        Returns:
+            A :class:`~notebookllm.models.NotebookDocument`.
+        """
         source = Path(source)
         content = source.read_text(encoding="utf-8")
         return self.loads(content)
 
     def loads(self, content: str) -> NotebookDocument:
+        """Load a Markdown notebook from a string.
+
+        Args:
+            content: Raw markdown content.
+
+        Returns:
+            A :class:`~notebookllm.models.NotebookDocument`.
+        """
         cells: list[Cell] = []
         metadata: dict[str, object] = {}
 
-        # Parse YAML frontmatter (same as quarto loader)
         fm_match = FRONTMATTER_RE.match(content)
         if fm_match:
             try:
@@ -37,12 +62,10 @@ class MarkdownLoader(BaseLoader):
         last_end = 0
 
         for match in CODE_BLOCK_RE.finditer(content):
-            # Markdown before this code block
             md_text = content[last_end:match.start()].strip()
             if md_text:
                 cells.append(Cell(cell_type=CellType.MARKDOWN, source=md_text))
 
-            # The code block
             lang = match.group(1)
             code = match.group(2).strip()
             if lang in ("python", "r", "julia", "javascript", "ts", "typescript"):
@@ -52,7 +75,6 @@ class MarkdownLoader(BaseLoader):
 
             last_end = match.end()
 
-        # Trailing markdown
         trailing = content[last_end:].strip()
         if trailing:
             cells.append(Cell(cell_type=CellType.MARKDOWN, source=trailing))
@@ -61,9 +83,22 @@ class MarkdownLoader(BaseLoader):
 
 
 class MarkdownDumper(BaseDumper):
-    """Dump to markdown format with embedded code blocks."""
+    """Dump :class:`~notebookllm.models.NotebookDocument` to Markdown format.
+
+    Code cells are written as fenced code blocks with language tags.
+    Markdown cells are written as plain text.
+    """
 
     def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str:
+        """Serialize a notebook to Markdown format.
+
+        Args:
+            doc: The notebook to serialize.
+            filepath: If provided, write the output to this file.
+
+        Returns:
+            The markdown content as a string.
+        """
         parts = []
         for cell in doc.cells:
             if cell.cell_type == CellType.CODE:

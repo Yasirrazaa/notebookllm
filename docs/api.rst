@@ -1,21 +1,38 @@
 API Reference
 =============
 
-notebookllm package
--------------------
-
-.. automodule:: notebookllm
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 notebookllm.models
 ------------------
 
 .. automodule:: notebookllm.models
+
+.. autoclass:: notebookllm.models.CellType
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. autoclass:: notebookllm.models.OutputMode
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: notebookllm.models.CellOutput
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
+
+.. autoclass:: notebookllm.models.Cell
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
+
+.. autoclass:: notebookllm.models.NotebookDocument
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
 
 notebookllm.loaders
 -------------------
@@ -95,11 +112,27 @@ notebookllm.mcp
    :show-inheritance:
 
 .. automodule:: notebookllm.mcp.session
+
+.. autoclass:: notebookllm.mcp.session.Session
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
+
+.. autoclass:: notebookllm.mcp.session.SessionManager
    :members:
    :undoc-members:
    :show-inheritance:
 
 .. automodule:: notebookllm.mcp.engine
+
+.. autoclass:: notebookllm.mcp.engine.ExecutionJob
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
+
+.. autoclass:: notebookllm.mcp.engine.KernelPool
    :members:
    :undoc-members:
    :show-inheritance:
@@ -113,12 +146,45 @@ notebookllm.utils
    :show-inheritance:
 
 .. automodule:: notebookllm.utils.tokenizer
+
+.. autoclass:: notebookllm.utils.tokenizer.CellTokenInfo
    :members:
-   :exclude-members: NotebookTokenReport, CellTokenInfo
    :undoc-members:
    :show-inheritance:
+   :no-index:
+
+.. autoclass:: notebookllm.utils.tokenizer.NotebookTokenReport
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
+
+.. autofunction:: notebookllm.utils.tokenizer.count_tokens
+
+.. autofunction:: notebookllm.utils.tokenizer.tokenize_notebook
 
 .. automodule:: notebookllm.utils.validation
+
+.. autoclass:: notebookllm.utils.validation.ValidationError
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
+
+.. autoclass:: notebookllm.utils.validation.ValidationReport
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
+
+.. autofunction:: notebookllm.utils.validation.atomic_write
+
+.. autofunction:: notebookllm.utils.validation.validate_notebook
+
+.. autofunction:: notebookllm.utils.validation.validate_filepath
+
+.. autofunction:: notebookllm.utils.validation.validate_output_format
+
+.. autofunction:: notebookllm.utils.validation.validate_cell_index
+
+.. autofunction:: notebookllm.utils.validation.validate_cell_type

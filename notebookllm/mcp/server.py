@@ -1,4 +1,12 @@
-"""MCP server for notebookllm — tools for notebook operations."""
+"""MCP server for notebookllm — exposes notebook operations as MCP tools, resources, and prompts.
+
+Provides a FastMCP-based server that allows LLM clients (Claude Desktop,
+VS Code, Zed, etc.) to load, create, edit, search, execute, and convert
+notebooks through the Model Context Protocol.
+
+The server manages sessions via :class:`~notebookllm.mcp.session.SessionManager`
+and kernel lifecycle via :class:`~notebookllm.mcp.engine.KernelPool`.
+"""
 from __future__ import annotations
 
 import asyncio
@@ -13,7 +21,15 @@ MAX_SESSIONS = 100
 
 
 def _get_doc_safe(session_manager: SessionManager, session_id: str) -> NotebookDocument | None:
-    """Get notebook doc, returning None if session missing."""
+    """Get a notebook document, returning ``None`` if the session is missing.
+
+    Args:
+        session_manager: The session manager instance.
+        session_id: Session identifier.
+
+    Returns:
+        The notebook document, or ``None`` if the session does not exist.
+    """
     try:
         return session_manager.get(session_id)
     except KeyError:
@@ -21,7 +37,15 @@ def _get_doc_safe(session_manager: SessionManager, session_id: str) -> NotebookD
 
 
 def _validate_cell_type(cell_type: str) -> CellType | str:
-    """Convert string to CellType, returning an error message on failure."""
+    """Convert a string to :class:`~notebookllm.models.CellType`.
+
+    Args:
+        cell_type: String like ``"code"``, ``"markdown"``, or ``"raw"``.
+
+    Returns:
+        The :class:`~notebookllm.models.CellType` on success, or an error
+        message string on failure.
+    """
     try:
         return CellType(cell_type)
     except ValueError:
@@ -30,7 +54,15 @@ def _validate_cell_type(cell_type: str) -> CellType | str:
 
 
 def _validate_output_mode(mode: str) -> OutputMode | str:
-    """Convert string to OutputMode, returning an error message on failure."""
+    """Convert a string to :class:`~notebookllm.models.OutputMode`.
+
+    Args:
+        mode: String like ``"minimal"``, ``"standard"``, or ``"full"``.
+
+    Returns:
+        The :class:`~notebookllm.models.OutputMode` on success, or an error
+        message string on failure.
+    """
     try:
         return OutputMode(mode)
     except ValueError:
@@ -41,7 +73,14 @@ def _validate_output_mode(mode: str) -> OutputMode | str:
 def _enforce_session_limit(
     session_manager: SessionManager, kernel_pool: object
 ) -> None:
-    """Evict oldest session if over MAX_SESSIONS (synchronous path — for load/create)."""
+    """Evict the oldest session if the maximum session count is exceeded.
+
+    Runs synchronously (for ``load`` and ``create`` tools).
+
+    Args:
+        session_manager: The session manager instance.
+        kernel_pool: The kernel pool (used for kernel cleanup).
+    """
     sessions = session_manager.list_sessions()
     while len(sessions) > MAX_SESSIONS:
         oldest = sessions[0]
@@ -52,7 +91,14 @@ def _enforce_session_limit(
 async def _enforce_session_limit_async(
     session_manager: SessionManager, kernel_pool: object
 ) -> None:
-    """Evict oldest session if over MAX_SESSIONS (async path — for tools that can await)."""
+    """Evict the oldest session if the maximum session count is exceeded.
+
+    Runs asynchronously (for tools that can await kernel shutdown).
+
+    Args:
+        session_manager: The session manager instance.
+        kernel_pool: The kernel pool (used for async kernel cleanup).
+    """
     from notebookllm.mcp.engine import KernelPool
 
     sessions = session_manager.list_sessions()
@@ -65,7 +111,19 @@ async def _enforce_session_limit_async(
 
 
 def create_app(session_manager: SessionManager | None = None):
-    """Create and configure the MCP server app."""
+    """Create and configure the FastMCP server app.
+
+    Registers all MCP tools, resources, and prompts on the app instance.
+    Also registers backward-compatible aliases for tools that had different
+    names in the old ``notebookllm-mcp`` package.
+
+    Args:
+        session_manager: An optional session manager instance. If not
+            provided, a new one is created.
+
+    Returns:
+        A configured :class:`FastMCP` app.
+    """
     try:
         from mcp.server.fastmcp import FastMCP
     except ImportError:
@@ -173,9 +231,14 @@ def create_app(session_manager: SessionManager | None = None):
             f"Walk through each cell and explain the logic step by step.\n\n{text}"
         )
 
+    # ── Tools ──────────────────────────────────────────────────
+
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def load(filepath: str) -> str:
-        """Load a notebook file into session."""
+        """Load a notebook file into a new session.
+
+        Returns a session ID that can be used with other tools.
+        """
         session_id = str(uuid.uuid4())
         doc = load_file(filepath)
         session_manager.store(session_id, doc, filepath=filepath)
@@ -184,7 +247,10 @@ def create_app(session_manager: SessionManager | None = None):
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def create(source_format: str | None = None) -> str:
-        """Create a new empty notebook session."""
+        """Create a new empty notebook session.
+
+        Optionally specify a source format for the notebook.
+        """
         session_id = str(uuid.uuid4())
         doc = NotebookDocument(source_format=source_format)
         session_manager.store(session_id, doc)
@@ -193,7 +259,7 @@ def create_app(session_manager: SessionManager | None = None):
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def list_sessions() -> str:
-        """List all active notebook sessions."""
+        """List all active notebook sessions with cell counts and formats."""
         sessions = session_manager.list_sessions()
         if not sessions:
             return "No active sessions."
@@ -207,7 +273,10 @@ def create_app(session_manager: SessionManager | None = None):
 
     @mcp.tool(annotations=ToolAnnotations(destructiveHint=True))
     def save(session_id: str, output_filepath: str | None = None) -> str:
-        """Save notebook to file."""
+        """Save a notebook session to a file.
+
+        If no output_filepath is given, uses the original filepath (if set).
+        """
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
@@ -219,7 +288,10 @@ def create_app(session_manager: SessionManager | None = None):
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def to_text(session_id: str, mode: str = "minimal", max_tokens: int | None = None) -> str:
-        """Convert notebook to LLM-optimized text. Use mode='token-budget' with max_tokens to limit output size."""
+        """Convert notebook to LLM-optimized text.
+
+        Use ``mode='token-budget'`` with ``max_tokens`` to limit output size.
+        """
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
@@ -230,7 +302,7 @@ def create_app(session_manager: SessionManager | None = None):
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def list_cells(session_id: str) -> str:
-        """List all cells with index, type, and preview."""
+        """List all cells in a session with index, type, and preview."""
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
@@ -244,7 +316,7 @@ def create_app(session_manager: SessionManager | None = None):
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def get_cell(session_id: str, index: int) -> str:
-        """Get a specific cell by index."""
+        """Get a specific cell by index (0-based)."""
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
@@ -255,7 +327,7 @@ def create_app(session_manager: SessionManager | None = None):
     def add_cell(
         session_id: str, source: str, cell_type: str = "code", position: int | None = None
     ) -> str:
-        """Add a new cell."""
+        """Add a new cell to a session."""
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
@@ -268,7 +340,7 @@ def create_app(session_manager: SessionManager | None = None):
 
     @mcp.tool(annotations=ToolAnnotations(destructiveHint=True))
     def edit_cell(session_id: str, index: int, source: str, cell_type: str | None = None) -> str:
-        """Edit an existing cell."""
+        """Edit an existing cell's source and optionally change its type."""
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
@@ -325,7 +397,7 @@ def create_app(session_manager: SessionManager | None = None):
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def count_tokens(session_id: str, mode: str = "minimal") -> str:
-        """Count tokens in the session notebook (modes: minimal, standard, full)."""
+        """Count tokens in a session notebook (modes: minimal, standard, full)."""
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
@@ -339,7 +411,7 @@ def create_app(session_manager: SessionManager | None = None):
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
-        
+
         from notebookllm.loaders import dump_file
         try:
             dump_file(doc, output_filepath, fmt=target_format)
@@ -349,11 +421,11 @@ def create_app(session_manager: SessionManager | None = None):
 
     @mcp.tool(annotations=ToolAnnotations(destructiveHint=True))
     async def execute(session_id: str, index: int, timeout: int = 60) -> str:
-        """Execute a code cell via Jupyter kernel (requires notebookllm[execute])."""
+        """Execute a code cell via a Jupyter kernel."""
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
-            
+
         cell = doc.get_cell(index)
         if cell.cell_type != CellType.CODE:
             return f"Cell [{index}] is not a code cell (it's {cell.cell_type.value})."
@@ -379,7 +451,7 @@ def create_app(session_manager: SessionManager | None = None):
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def list_kernels() -> str:
-        """List available kernels from jupyter kernelspec."""
+        """List available Jupyter kernels from kernelspec."""
         kernels = kernel_pool.list_kernels()
         if not kernels:
             return "No kernels found."
@@ -394,7 +466,6 @@ def create_app(session_manager: SessionManager | None = None):
     @mcp.tool(annotations=ToolAnnotations(destructiveHint=False))
     async def close_session(session_id: str) -> str:
         """Explicitly close and remove a notebook session, cleaning up any associated kernel."""
-        # Shut down any active kernel before removing the session
         if kernel_pool.has_kernel(session_id):
             await kernel_pool.shutdown_kernel(session_id)
         try:
@@ -409,15 +480,15 @@ def create_app(session_manager: SessionManager | None = None):
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
-        
+
         cells = doc.cells
         total = len(cells)
         code_cells = [c for c in cells if c.cell_type == CellType.CODE]
         markdown = len([c for c in cells if c.cell_type == CellType.MARKDOWN])
         raw = len([c for c in cells if c.cell_type == CellType.RAW])
-        
+
         executed = len([c for c in code_cells if c.execution_count is not None or c.outputs])
-        
+
         import re
         imports = set()
         functions = set()
@@ -430,7 +501,7 @@ def create_app(session_manager: SessionManager | None = None):
                         imports.add(m.strip().split(".")[0])
             for match in re.finditer(r"^def\s+([a-zA-Z0-9_]+)\s*\(", c.source, re.MULTILINE):
                 functions.add(match.group(1))
-                
+
         lines = [
             f"Cells: {total} ({len(code_cells)} code, {markdown} markdown, {raw} raw)",
             f"Executed: {executed}/{len(code_cells)} code cells",
@@ -439,7 +510,7 @@ def create_app(session_manager: SessionManager | None = None):
             lines.append(f"Imports: {', '.join(sorted(imports))}")
         if functions:
             lines.append(f"Functions: {', '.join(sorted(functions))}")
-            
+
         return "\n".join(lines)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
@@ -457,7 +528,6 @@ def create_app(session_manager: SessionManager | None = None):
         return "".join(difflib.unified_diff(text1, text2, fromfile=session_id1, tofile=session_id2))
 
     # ── Aliases ────────────────────────────────────────────────
-    # Register backward-compatible alias names for tools.
     for alias_name, target_fn in {
         "load_notebook": load,
         "create_notebook": create,
@@ -472,7 +542,11 @@ def create_app(session_manager: SessionManager | None = None):
 
 
 def main(transport: str = "stdio") -> None:
-    """Run the MCP server."""
+    """Run the MCP server.
+
+    Args:
+        transport: Transport type — ``"stdio"`` (default) or ``"sse"``.
+    """
     app = create_app()
     app.run(transport=transport)
 

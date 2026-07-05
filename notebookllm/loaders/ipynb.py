@@ -1,4 +1,8 @@
-"""ipynb loader/dumper — Jupyter notebook format."""
+"""ipynb loader/dumper — Jupyter notebook format (``.ipynb``).
+
+Uses ``nbformat`` for normal-sized files and optional ``ijson`` streaming
+for files larger than 10 MB.
+"""
 from __future__ import annotations
 
 import json
@@ -16,11 +20,26 @@ STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024
 
 
 class IpynbLoader(BaseLoader):
-    """Load .ipynb files using nbformat (small files) or ijson streaming (large files)."""
+    """Load ``.ipynb`` files into :class:`~notebookllm.models.NotebookDocument`.
+
+    For files smaller than :attr:`streaming_threshold`, uses ``nbformat``
+    (fast, full in-memory parsing). For larger files, uses ``ijson`` to
+    stream-parse cells one at a time, keeping memory usage low.
+
+    Falls back to ``nbformat`` if ``ijson`` is not installed.
+    """
 
     streaming_threshold: int = STREAMING_THRESHOLD_BYTES
 
     def load(self, source: str | Path) -> NotebookDocument:
+        """Load a ``.ipynb`` file from disk.
+
+        Args:
+            source: Path to the ``.ipynb`` file.
+
+        Returns:
+            A :class:`~notebookllm.models.NotebookDocument`.
+        """
         source = Path(source)
         file_size = source.stat().st_size
 
@@ -31,13 +50,29 @@ class IpynbLoader(BaseLoader):
         return self._convert(nb)
 
     def loads(self, content: str) -> NotebookDocument:
+        """Load a ``.ipynb`` notebook from a JSON string.
+
+        Args:
+            content: The raw JSON content of a ``.ipynb`` file.
+
+        Returns:
+            A :class:`~notebookllm.models.NotebookDocument`.
+        """
         nb = nbformat.reads(content, as_version=4)
         return self._convert(nb)
 
     def _load_streaming(self, filepath: Path, file_size: int | None = None) -> NotebookDocument:
-        """Stream-parse a large ipynb file using ijson to avoid loading the entire JSON into memory.
+        """Stream-parse a large ``.ipynb`` file using ``ijson``.
 
-        Falls back to nbformat if ijson is not installed.
+        Avoids loading the entire JSON into memory by processing one cell
+        at a time. Falls back to ``nbformat`` if ``ijson`` is not installed.
+
+        Args:
+            filepath: Path to the ``.ipynb`` file.
+            file_size: Known file size (avoids an extra ``stat()`` call).
+
+        Returns:
+            A :class:`~notebookllm.models.NotebookDocument`.
         """
         try:
             import ijson  # type: ignore[import-untyped]
@@ -69,15 +104,23 @@ class IpynbLoader(BaseLoader):
     def _extract_metadata(filepath: Path, file_size: int | None = None) -> dict:
         """Extract notebook-level metadata by reading the end of the file.
 
-        In .ipynb format, metadata always appears AFTER the cells array
-        and before nbformat/nbformat_minor. We read the last 64 KB of
-        the file (metadata is typically < 1 KB) to extract it without
-        loading the full file into memory.
+        In ``.ipynb`` format, metadata always appears after the cells array
+        and before ``nbformat``/``nbformat_minor``. This method reads the
+        last 64 KB of the file (metadata is typically < 1 KB) and extracts
+        it without loading the full file into memory.
 
-        NOTE: Uses brace-depth tracking which may fail if metadata values
-        contain unescaped braces ({ or }) inside strings. This is a known
-        limitation of the heuristic approach — production notebooks rarely
-        have such values in notebook-level metadata.
+        .. note::
+            Uses brace-depth tracking which may fail if metadata values
+            contain unescaped braces (``{`` or ``}``) inside strings. This
+            is a known limitation of the heuristic approach — production
+            notebooks rarely have such values in notebook-level metadata.
+
+        Args:
+            filepath: Path to the ``.ipynb`` file.
+            file_size: Known file size (optional, avoids extra ``stat()``).
+
+        Returns:
+            The notebook-level metadata dict, or ``{}`` if extraction fails.
         """
         if file_size is None:
             file_size = filepath.stat().st_size
@@ -126,10 +169,16 @@ class IpynbLoader(BaseLoader):
 
     @staticmethod
     def _cell_from_dict(cell_dict: dict) -> Cell:
-        """Convert an ijson-parsed cell dict to a Cell dataclass.
+        """Convert a plain dict (from ijson parsing) to a :class:`~notebookllm.models.Cell`.
 
-        This mirrors _convert but works with plain dicts from ijson
-        instead of nbformat NotebookNode objects.
+        Mirrors :meth:`_convert` but works with dicts from ``ijson`` instead
+        of ``nbformat.NotebookNode`` objects.
+
+        Args:
+            cell_dict: A dict representing one notebook cell.
+
+        Returns:
+            A :class:`~notebookllm.models.Cell`.
         """
         source = cell_dict.get("source", "")
         if isinstance(source, list):
@@ -156,9 +205,16 @@ class IpynbLoader(BaseLoader):
 
     @staticmethod
     def _parse_output_static(out: dict) -> CellOutput:
-        """Parse a cell output dict into CellOutput.
+        """Parse a cell output dict into :class:`~notebookllm.models.CellOutput`.
 
-        Works with both nbformat output dicts and plain dicts from ijson.
+        Works with both ``nbformat`` output dicts and plain dicts from
+        ``ijson``.
+
+        Args:
+            out: A dict representing a single cell output.
+
+        Returns:
+            A :class:`~notebookllm.models.CellOutput`.
         """
         output_type = out.get("output_type", "unknown")
         if output_type == "stream":
@@ -190,6 +246,14 @@ class IpynbLoader(BaseLoader):
             return CellOutput(output_type=output_type, content=str(out))
 
     def _convert(self, nb: nbformat.NotebookNode) -> NotebookDocument:
+        """Convert an ``nbformat`` notebook to :class:`~notebookllm.models.NotebookDocument`.
+
+        Args:
+            nb: An ``nbformat`` notebook node.
+
+        Returns:
+            A :class:`~notebookllm.models.NotebookDocument`.
+        """
         cells = []
         for nb_cell in nb.cells:
             source = nb_cell.source
@@ -228,14 +292,34 @@ class IpynbLoader(BaseLoader):
         )
 
     def _parse_output(self, out: NotebookNode) -> CellOutput:
-        """Parse a cell output NotebookNode into CellOutput."""
+        """Parse a cell output ``NotebookNode`` into :class:`~notebookllm.models.CellOutput`.
+
+        Args:
+            out: A ``nbformat`` output node.
+
+        Returns:
+            A :class:`~notebookllm.models.CellOutput`.
+        """
         return self._parse_output_static(dict(out))
 
 
 class IpynbDumper(BaseDumper):
-    """Dump to .ipynb format."""
+    """Dump :class:`~notebookllm.models.NotebookDocument` to ``.ipynb`` format.
+
+    Produces standard Jupyter notebook JSON, compatible with JupyterLab,
+    VS Code, and nbformat v4.
+    """
 
     def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str:
+        """Serialize a notebook to ``.ipynb`` JSON.
+
+        Args:
+            doc: The notebook to serialize.
+            filepath: If provided, write the output to this file.
+
+        Returns:
+            The ``.ipynb`` JSON string.
+        """
         nb = nbformat.v4.new_notebook()
         nb.metadata = doc.metadata.copy()
         if doc.kernel_name:
@@ -265,6 +349,14 @@ class IpynbDumper(BaseDumper):
         return content
 
     def _dump_output(self, out: CellOutput) -> dict:
+        """Convert a :class:`~notebookllm.models.CellOutput` to an ``nbformat`` output dict.
+
+        Args:
+            out: The output to convert.
+
+        Returns:
+            An ``nbformat``-compatible output dict.
+        """
         if out.output_type == "stream":
             text = out.content
             if isinstance(text, list):

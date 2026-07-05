@@ -1,4 +1,9 @@
-"""CLI commands for notebookllm — convert, inspect, search, get."""
+"""CLI commands for notebookllm — convert, inspect, search, get, tokens, server.
+
+Uses Click for argument parsing and Rich for formatted output (tables,
+syntax highlighting). All commands accept a file path and produce output
+to stdout or a specified output file.
+"""
 from __future__ import annotations
 from pathlib import Path
 
@@ -16,7 +21,17 @@ def cli():
 
 
 def _load_or_abort(file: str) -> NotebookDocument:
-    """Load a notebook file and abort with a clean error on failure."""
+    """Load a notebook file and abort with a clean error message on failure.
+
+    Args:
+        file: Path to the notebook file.
+
+    Returns:
+        The loaded :class:`~notebookllm.models.NotebookDocument`.
+
+    Raises:
+        click.Abort: If the file cannot be loaded.
+    """
     try:
         return load_file(file)
     except Exception as e:
@@ -33,9 +48,17 @@ _FORMAT_EXTENSIONS = {
 
 
 def _batch_output_path(source: str, outdir: str, fmt: str | None) -> str:
-    """Derive an output path for a source file inside *outdir*.
+    """Derive an output path for a source file inside a batch output directory.
 
-    Uses *fmt* to pick the extension, defaulting to ``.py``.
+    The output filename follows the pattern ``{stem}_converted{ext}``.
+
+    Args:
+        source: Source file path.
+        outdir: Output directory path.
+        fmt: Target format (used to pick the file extension).
+
+    Returns:
+        The full output path as a string.
     """
     stem = Path(source).stem
     ext = _FORMAT_EXTENSIONS.get(fmt, ".py") if fmt else ".py"
@@ -50,7 +73,12 @@ def _batch_output_path(source: str, outdir: str, fmt: str | None) -> str:
 @click.option("-m", "--mode", type=click.Choice(["minimal", "standard", "full"]), default="minimal",
               help="LLM output mode")
 def convert(files: tuple[str, ...], output: str | None, outdir: str | None, fmt: str | None, mode: str):
-    """Convert notebook(s) between formats."""
+    """Convert notebook(s) between formats.
+
+    When no ``--output`` or ``--outdir`` is given, outputs LLM-optimized
+    text to stdout. Supports batch conversion of multiple files with
+    auto-named output.
+    """
     from rich.console import Console
     console = Console()
 
@@ -59,7 +87,6 @@ def convert(files: tuple[str, ...], output: str | None, outdir: str | None, fmt:
         raise click.Abort()
 
     if len(files) > 1 or outdir:
-        # Batch mode
         if output:
             _convert_single(files[0], output, fmt, mode, console)
         else:
@@ -69,7 +96,6 @@ def convert(files: tuple[str, ...], output: str | None, outdir: str | None, fmt:
                     out_path = _batch_output_path(file, outdir, fmt)
                     _convert_single(file, out_path, fmt, mode, console)
                 else:
-                    # Multiple files to stdout — print each with header
                     doc = _load_or_abort(file)
                     output_mode = OutputMode(mode)
                     text = doc.to_text(mode=output_mode)
@@ -77,7 +103,6 @@ def convert(files: tuple[str, ...], output: str | None, outdir: str | None, fmt:
                     console.print(text, markup=False)
                     console.print()
     else:
-        # Single file, backward compat path
         if output:
             _convert_single(files[0], output, fmt, mode, console)
         else:
@@ -88,7 +113,15 @@ def convert(files: tuple[str, ...], output: str | None, outdir: str | None, fmt:
 
 
 def _convert_single(file: str, output: str, fmt: str | None, mode: str, console):
-    """Load *file*, dump to *output* and print a success message."""
+    """Load a file and dump it to the output path, printing a success message.
+
+    Args:
+        file: Source file path.
+        output: Destination file path.
+        fmt: Output format override.
+        mode: Output mode (unused in dump, kept for API consistency).
+        console: Rich console instance.
+    """
     doc = _load_or_abort(file)
     dump_file(doc, output, fmt=fmt)
     console.print(f"[green]✓[/green] [bold]{output}[/bold]")
@@ -97,7 +130,7 @@ def _convert_single(file: str, output: str, fmt: str | None, mode: str, console)
 @cli.command()
 @click.argument("file", type=click.Path(exists=True))
 def inspect(file: str):
-    """Inspect notebook structure."""
+    """Inspect notebook structure — show format, cell count, language, and a cell table."""
     doc = _load_or_abort(file)
     from rich.console import Console
     from rich.table import Table
@@ -105,18 +138,18 @@ def inspect(file: str):
     console.print(f"Format: {doc.source_format}")
     console.print(f"Cells: {len(doc.cells)}")
     console.print(f"Language: {doc.language}\n")
-    
+
     table = Table(title="Cells")
     table.add_column("Index", justify="right", style="cyan")
     table.add_column("Type", style="magenta")
     table.add_column("Preview")
-    
+
     for i, cell in enumerate(doc.cells):
         preview = cell.source[:80].replace("\n", " ")
         if len(cell.source) > 80:
             preview += "..."
         table.add_row(str(i), cell.cell_type.value, preview)
-        
+
     console.print(table)
 
 
@@ -126,30 +159,30 @@ def inspect(file: str):
 @click.option("-t", "--type", "cell_type", type=click.Choice(["code", "markdown", "raw"]),
               help="Filter by cell type")
 def search(file: str, query: str, cell_type: str | None):
-    """Search cells by content."""
+    """Search cells by content (case-insensitive substring match)."""
     doc = _load_or_abort(file)
     ct = CellType(cell_type) if cell_type else None
     results = doc.search(query, cell_type=ct)
-    
+
     from rich.console import Console
     from rich.table import Table
     console = Console()
-    
+
     if not results:
         console.print("[yellow]No matches found.[/yellow]")
         return
-        
+
     table = Table(title=f"Search Results for '{query}'")
     table.add_column("Index", justify="right", style="cyan")
     table.add_column("Type", style="magenta")
     table.add_column("Preview")
-    
+
     for idx, cell in results:
         preview = cell.source[:80].replace("\n", " ")
         import re
         preview = re.sub(f"({re.escape(query)})", r"[bold green]\1[/bold green]", preview, flags=re.IGNORECASE)
         table.add_row(str(idx), cell.cell_type.value, preview)
-        
+
     console.print(table)
 
 
@@ -157,7 +190,7 @@ def search(file: str, query: str, cell_type: str | None):
 @click.argument("file", type=click.Path(exists=True))
 @click.argument("index", type=int)
 def get(file: str, index: int):
-    """Get a specific cell by index."""
+    """Get a specific cell by index (0-based)."""
     doc = _load_or_abort(file)
     cell = doc.get_cell(index)
     from rich.console import Console
@@ -172,7 +205,11 @@ def get(file: str, index: int):
 @click.option("--transport", type=click.Choice(["stdio", "sse"]), default="stdio",
               help="MCP transport type")
 def server(transport: str):
-    """Start MCP server."""
+    """Start the MCP server for AI agent integration.
+
+    Uses stdio transport by default (for Claude Desktop, VS Code, Zed).
+    Use ``--transport sse`` for SSE-based connections.
+    """
     from notebookllm.mcp.server import main
     main(transport=transport)
 
@@ -183,7 +220,11 @@ def server(transport: str):
               help="Output mode for token estimation")
 @click.option("--breakdown", is_flag=True, help="Show per-cell token breakdown")
 def tokens(file: str, mode: str, breakdown: bool):
-    """Estimate token usage for a notebook."""
+    """Estimate token usage for a notebook.
+
+    Shows total token count and, with ``--breakdown``, a per-cell table
+    with index, type, tokens, and source preview.
+    """
     doc = _load_or_abort(file)
     from rich.console import Console
     from rich.table import Table
@@ -199,8 +240,8 @@ def tokens(file: str, mode: str, breakdown: bool):
         table.add_column("Type", style="magenta")
         table.add_column("Tokens", justify="right", style="green")
         table.add_column("Preview")
-        
+
         for ct in report.cell_tokens:
             table.add_row(str(ct.cell_index), ct.cell_type, str(ct.tokens), ct.preview)
-            
+
         console.print(table)

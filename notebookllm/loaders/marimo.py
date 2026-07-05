@@ -1,4 +1,13 @@
-"""Marimo format loader — .py files with @app.cell decorators."""
+"""Marimo format loader/dumper — ``.py`` files with ``@app.cell`` decorators.
+
+Marimo (https://marimo.io) is a reactive Python notebook that stores
+notebooks as standard Python files. Cells are defined as functions
+decorated with ``@app.cell``.
+
+Markdown cells are represented as ``mo.md("...")`` calls inside code
+cells. The loader detects this pattern and converts them to
+:attr:`~notebookllm.models.CellType.MARKDOWN` cells.
+"""
 from __future__ import annotations
 
 import ast
@@ -11,14 +20,36 @@ from notebookllm.models import Cell, CellType, NotebookDocument
 
 
 class MarimoLoader(BaseLoader):
-    """Load marimo format .py files using AST parsing."""
+    """Load marimo-format ``.py`` files using AST parsing.
+
+    Parses the Python AST to find functions decorated with ``@app.cell``,
+    extracts their source code, and detects ``mo.md()`` calls to identify
+    markdown cells. Also extracts the ``__generated_with`` version from
+    module-level assignments.
+    """
 
     def load(self, source: str | Path) -> NotebookDocument:
+        """Load a marimo notebook from a file path.
+
+        Args:
+            source: Path to the marimo ``.py`` file.
+
+        Returns:
+            A :class:`~notebookllm.models.NotebookDocument`.
+        """
         source = Path(source)
         content = source.read_text(encoding="utf-8")
         return self.loads(content)
 
     def loads(self, content: str) -> NotebookDocument:
+        """Load a marimo notebook from a string.
+
+        Args:
+            content: Raw marimo source code.
+
+        Returns:
+            A :class:`~notebookllm.models.NotebookDocument`.
+        """
         cells = []
 
         try:
@@ -29,7 +60,6 @@ class MarimoLoader(BaseLoader):
         # Extract __generated_with version from module-level assignment
         generated_with = None
         for node in ast.iter_child_nodes(tree):
-            # Handle regular assignments: __generated_with = "0.8"
             if isinstance(node, ast.Assign):
                 for target in node.targets:
                     if isinstance(target, ast.Name) and target.id == "__generated_with":
@@ -37,7 +67,6 @@ class MarimoLoader(BaseLoader):
                             generated_with = node.value.value
                         elif isinstance(node.value, ast.Str):  # Python < 3.8 compat
                             generated_with = node.value.s
-            # Handle annotated assignments: __generated_with: str = "0.8" (marimo v0.8+)
             elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
                 if node.target.id == "__generated_with" and node.value is not None:
                     if isinstance(node.value, ast.Constant):
@@ -50,7 +79,6 @@ class MarimoLoader(BaseLoader):
                 continue
             if not self._has_cell_decorator(node):
                 continue
-            # Extract cell body from AST
             cell_source, cell_type = self._extract_cell(content, node)
             cells.append(Cell(cell_type=cell_type, source=cell_source))
 
@@ -61,7 +89,14 @@ class MarimoLoader(BaseLoader):
         return NotebookDocument(cells=cells, metadata=metadata, source_format="marimo")
 
     def _has_cell_decorator(self, node: ast.FunctionDef) -> bool:
-        """Check if function has @app.cell decorator."""
+        """Check if a function has the ``@app.cell`` decorator.
+
+        Args:
+            node: An AST function definition node.
+
+        Returns:
+            ``True`` if the function is decorated with ``@app.cell``.
+        """
         for dec in node.decorator_list:
             if isinstance(dec, ast.Attribute):
                 if dec.attr == "cell" and isinstance(dec.value, ast.Name) and dec.value.id == "app":
@@ -71,20 +106,36 @@ class MarimoLoader(BaseLoader):
         return False
 
     def _is_mo_md_call(self, source: str) -> bool:
-        """Detect if the cell body is primarily a mo.md() call (marimo markdown).
+        """Detect if a cell body is primarily a ``mo.md()`` call (marimo markdown).
 
-        Marimo stores markdown content as mo.md("...") calls inside code cells.
-        We detect this pattern to convert the cell to CellType.MARKDOWN.
+        Marimo stores markdown content as ``mo.md("...")`` calls inside
+        code cells. This pattern is detected to convert the cell to
+        :attr:`~notebookllm.models.CellType.MARKDOWN`.
+
+        Args:
+            source: The cell source text.
+
+        Returns:
+            ``True`` if the cell appears to be a ``mo.md()`` markdown cell.
         """
         stripped = source.strip()
-        # Match mo.md("...") with optional return prefix
         return bool(re.match(r"^(?:return\s+)?mo\.md\(", stripped))
 
     def _extract_cell(self, content: str, node: ast.FunctionDef) -> tuple[str, CellType]:
-        """Extract cell body and detect if it's markdown (mo.md() call)."""
+        """Extract the body of a marimo cell function and detect its type.
+
+        Strips the function definition, dedents the body, removes trailing
+        ``return`` statements, and detects ``mo.md()`` calls.
+
+        Args:
+            content: The full marimo source code.
+            node: The AST function definition node.
+
+        Returns:
+            A ``(source, cell_type)`` tuple.
+        """
         lines = content.splitlines(keepends=True)
         body_start = node.body[0].lineno - 1
-        # Use end_lineno (Python 3.8+); fall back to computing the last body line
         if hasattr(node, "end_lineno") and node.end_lineno:
             end_line = node.body[-1].end_lineno
         elif hasattr(node.body[-1], "end_lineno") and node.body[-1].end_lineno:
@@ -108,9 +159,22 @@ class MarimoLoader(BaseLoader):
 
 
 class MarimoDumper(BaseDumper):
-    """Dump NotebookDocument to marimo format (.py)."""
+    """Dump :class:`~notebookllm.models.NotebookDocument` to marimo format.
+
+    Produces a valid marimo ``.py`` file with ``@app.cell`` decorators.
+    Markdown cells are wrapped in ``mo.md()`` calls.
+    """
 
     def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str:
+        """Serialize a notebook to marimo format.
+
+        Args:
+            doc: The notebook to serialize.
+            filepath: If provided, write the output to this file.
+
+        Returns:
+            The marimo-format source code as a string.
+        """
         lines = [
             "import marimo",
             "",
@@ -122,16 +186,10 @@ class MarimoDumper(BaseDumper):
 
         for i, cell in enumerate(doc.cells):
             lines.append("@app.cell")
-            
-            # Determine function name (must be valid identifier)
-            # If marimo uses specific cell names, they are not currently stored natively, 
-            # so we generate generic cell function names.
             func_name = f"cell_{i}"
             lines.append(f"def {func_name}():")
 
             if cell.cell_type == CellType.MARKDOWN:
-                # Marimo requires markdown to be wrapped in mo.md()
-                # Use triple double quotes and escape existing ones
                 md_content = cell.source.replace('"""', '\\"\\"\\"')
                 body = f'import marimo as mo\nreturn mo.md(\n    """\n{textwrap.indent(md_content, "    ")}\n    """\n)'
             else:
@@ -140,15 +198,12 @@ class MarimoDumper(BaseDumper):
             if not body.strip():
                 body = "pass"
 
-            # Indent the cell body inside the function
             indented_body = textwrap.indent(body, "    ")
             lines.append(indented_body)
-            
-            # Ensure the function has a return statement if it doesn't already end with one
-            # (Marimo code cells usually return a tuple of declared variables, but just returning is valid)
+
             if not body.strip().endswith("return") and not re.search(r"^\s*return\b", body, flags=re.MULTILINE):
                 lines.append("    return")
-            
+
             lines.append("")
             lines.append("")
 

@@ -4,6 +4,9 @@
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/notebookllm)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/notebookllm?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/notebookllm)
 
+> **Package Unification**: The `notebookllm` and `notebookllm-mcp` packages have been unified.
+> The old `notebookllm-mcp` package is deprecated — use `notebookllm[mcp]` instead.
+
 Convert, inspect, and optimize Jupyter notebooks for LLMs.
 
 `notebookllm` converts notebooks to a clean, LLM-optimized plain text format, reducing token usage by up to 80%. It reads and writes 8 formats — `.ipynb`, percent scripts, Quarto, Markdown, Marimo, R Markdown, Deepnote, and flat scripts — through a single unified API. Use it from the CLI, Python library, or MCP server.
@@ -50,6 +53,9 @@ Raw `.ipynb` files waste LLM context. The JSON structure, metadata, execution co
 - **MCP server**: Expose all operations as MCP tools, resources, and prompts for LLM clients.
 
 ## Installation
+
+> **Migrating from `notebookllm-mcp`?** The old separate MCP package is deprecated.
+> Just run `pip install notebookllm[mcp]` instead — the MCP server is now built in.
 
 ```bash
 pip install notebookllm          # core: format conversion, streaming, execution

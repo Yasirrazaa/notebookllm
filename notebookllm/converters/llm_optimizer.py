@@ -1,27 +1,37 @@
-"""LLM Optimizer — converts NotebookDocument to LLM-optimized text."""
+"""LLM Optimizer — converts :class:`~notebookllm.models.NotebookDocument` to LLM-optimized plain text.
+
+Produces clean, token-efficient text representations of notebooks for
+LLM consumption. Supports four output modes with different verbosity
+levels and an optional token budget that drops low-priority cells
+automatically.
+"""
 from __future__ import annotations
 
 from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument, OutputMode
 
 
 class LLMOptimizer:
-    """Converts NotebookDocument to LLM-optimized text with configurable output modes.
+    """Converts :class:`~notebookllm.models.NotebookDocument` to LLM-optimized text.
+
+    The optimizer produces a clean, structured text format with ``# %% [type]``
+    cell markers, optionally including metadata and outputs. When a token budget
+    is set, it drops the lowest-value cells first to stay within the limit.
 
     Parameters
     ----------
     mode:
-        Output verbosity mode.
+        Output verbosity mode. Defaults to :attr:`~notebookllm.models.OutputMode.MINIMAL`.
     include_cell_markers:
-        Whether to include ``# %% [type]`` markers.
+        Whether to include ``# %% [type]`` markers between cells.
     max_line_length:
         If set, truncate source lines to this length.
     summarize_outputs:
-        Replace long/rich outputs with compressed summaries.
+        Replace long and rich outputs (DataFrames, images, tracebacks)
+        with compressed one-line summaries.
     max_tokens:
-        If set, trim the result to fit within this many tokens.
-        Token counting uses a simple heuristic: 1 token ≈ 4 characters.
-        Lower-priority cells (code without outputs, bottom cells) are
-        dropped first; markdown cells are kept as long as possible.
+        If set, trim the result to fit within this many tokens by dropping
+        lowest-priority cells first (bare code -> code with outputs ->
+        markdown). Token counting uses a simple ``len(text) // 4`` heuristic.
     """
 
     def __init__(
@@ -39,11 +49,17 @@ class LLMOptimizer:
         self.max_tokens = max_tokens
 
     def optimize(self, doc: NotebookDocument) -> str:
-        """Produce optimized text, optionally constrained by token budget."""
+        """Produce optimized text, optionally constrained by token budget.
+
+        Args:
+            doc: The notebook to optimize.
+
+        Returns:
+            The optimized plain text representation.
+        """
         if not doc.cells:
             return ""
 
-        # --- token budget mode: build incrementally, dropping lowest-value cells ---
         if self.max_tokens is not None:
             return self._optimize_with_budget(doc)
 
@@ -54,34 +70,48 @@ class LLMOptimizer:
         return "\n\n".join(parts)
 
     def _estimate_tokens(self, text: str) -> int:
-        """Rough token estimate: ~4 chars per token."""
+        """Rough token estimate using ``len(text) // 4`` heuristic.
+
+        Args:
+            text: The text to estimate.
+
+        Returns:
+            Estimated token count.
+        """
         return len(text) // 4
 
     def _optimize_with_budget(self, doc: NotebookDocument) -> str:
-        """Render cells within the token budget, dropping bottom code cells first."""
+        """Render cells within a token budget, dropping lowest-priority cells.
+
+        Priority order (highest = kept longest):
+
+        1. Markdown cells (explanatory, most valuable for LLM understanding).
+        2. Code cells with outputs (executed, have results).
+        3. Code cells without outputs (scaffolding — dropped first).
+
+        Args:
+            doc: The notebook to render.
+
+        Returns:
+            The optimized text, trimmed to fit within the token budget.
+        """
         budget = self.max_tokens
 
-        # First pass: render in FULL mode with summarization
         saved_mode = self.mode
         saved_summary = self.summarize_outputs
         self.mode = OutputMode.FULL
         self.summarize_outputs = True
 
-        # Sort cells by priority for dropping:
-        #   Priority 1 (drop first): code cells with no outputs (scaffolding)
-        #   Priority 2: code cells WITH outputs
-        #   Priority 3 (keep longest): markdown cells
-        priorities: list[tuple[int, int]] = []  # (priority, cell_index)
+        priorities: list[tuple[int, int]] = []
         for i, cell in enumerate(doc.cells):
             if cell.cell_type == CellType.MARKDOWN:
-                priorities.append((2, i))  # highest priority — never drop
+                priorities.append((2, i))
             elif cell.outputs:
                 priorities.append((1, i))
             else:
                 priorities.append((0, i))
-        priorities.sort(key=lambda x: (x[0], -x[1]))  # low priority first, then bottom-up
+        priorities.sort(key=lambda x: (x[0], -x[1]))
 
-        # Try rendering with all cells, drop lowest-priority cells until within budget
         kept_indices = set(range(len(doc.cells)))
         for _ in range(len(doc.cells)):
             subset = [doc.cells[i] for i in sorted(kept_indices)]
@@ -94,15 +124,13 @@ class LLMOptimizer:
                 self.summarize_outputs = saved_summary
                 return text
 
-            # Drop lowest-priority cell that isn't the last markdown
             for pri, idx in priorities:
                 if idx in kept_indices and (pri < 2 or sum(1 for i in kept_indices if doc.cells[i].cell_type == CellType.MARKDOWN) > 1):
                     kept_indices.discard(idx)
                     break
             else:
-                break  # can't drop any more
+                break
 
-        # Final render after dropping
         subset = [doc.cells[i] for i in sorted(kept_indices)]
         temp_doc = NotebookDocument(cells=subset, metadata=doc.metadata,
                                      source_format=doc.source_format)
@@ -112,20 +140,33 @@ class LLMOptimizer:
         return result
 
     def _render_all(self, doc: NotebookDocument) -> str:
-        """Render all cells using current settings."""
+        """Render all cells using current settings.
+
+        Args:
+            doc: The notebook to render.
+
+        Returns:
+            The rendered text.
+        """
         parts = []
         for cell in doc.cells:
             parts.append(self._format_cell(cell))
         return "\n\n".join(parts)
 
     def _format_cell(self, cell: Cell) -> str:
+        """Format a single cell as LLM-optimized text.
+
+        Args:
+            cell: The cell to format.
+
+        Returns:
+            The formatted cell text.
+        """
         lines = []
 
-        # Cell marker
         if self.include_cell_markers:
             lines.append(f"# %% [{cell.cell_type.value}]")
 
-        # Metadata (STANDARD+)
         if self.mode in (OutputMode.STANDARD, OutputMode.FULL):
             if cell.execution_count is not None:
                 lines.append(f"# exec_count: {cell.execution_count}")
@@ -133,10 +174,8 @@ class LLMOptimizer:
             if tags:
                 lines.append(f"# tags: {', '.join(tags)}")
 
-        # Source
         lines.append(cell.source)
 
-        # Outputs (FULL only)
         if self.mode == OutputMode.FULL and cell.outputs:
             lines.append("# --- outputs ---")
             for output in cell.outputs:
@@ -145,12 +184,23 @@ class LLMOptimizer:
         return "\n".join(lines)
 
     def _format_output(self, output: CellOutput) -> str:
+        """Format a single cell output for LLM consumption.
+
+        If :attr:`summarize_outputs` is enabled, long outputs are compressed
+        automatically (DataFrames get shape/columns summaries, images get
+        size metadata, tracebacks get their last line).
+
+        Args:
+            output: The output to format.
+
+        Returns:
+            The formatted output string.
+        """
         if self.summarize_outputs:
             summary = self._summarize_output(output)
             if summary is not None:
                 return summary
 
-        # Extract text/plain from rich MIME bundles for cleaner LLM output
         content = output.content
         if isinstance(content, dict):
             content = content.get("text/plain", str(content))
@@ -171,54 +221,63 @@ class LLMOptimizer:
             return f"# [{output.output_type}] {content}"
 
     def _summarize_output(self, output: CellOutput) -> str | None:
-        """Detect output type and compress intelligently."""
+        """Detect output type and return a compressed summary.
+
+        Handles:
+        - DataFrames (shape + column names)
+        - Images (MIME type + size)
+        - Error tracebacks (last line only)
+        - Long text (truncated with char count)
+
+        Args:
+            output: The output to summarize.
+
+        Returns:
+            A one-line summary, or ``None`` if no compression is needed.
+        """
         content = output.content
         if isinstance(content, dict):
-            # Check for DataFrame patterns in MIME bundle
             if "text/html" in content and "text/plain" in content:
                 text_plain = content["text/plain"]
                 return self._summarize_dataframe(text_plain)
-            # Check for image
             image_summary = self._summarize_image(content)
             if image_summary:
                 return image_summary
-        
-        # String content
+
         text = content if isinstance(content, str) else content.get("text/plain", str(content))
-        
-        # Traceback detection
+
         if output.output_type == "error" and "Traceback" in text:
             return self._summarize_traceback(text)
 
-        # Truncate long strings
         if len(text) > 500:
             return f"# [{output.output_type or 'output'}] {text[:500]}... (truncated {len(text) - 500} chars)"
 
         return None
 
     def _summarize_dataframe(self, text_plain: str) -> str:
-        """Try to extract shape and columns from DataFrame ASCII repr.
+        """Extract shape and column names from a pandas DataFrame ASCII repr.
 
-        Heuristic — works for pandas default formatting. The 100% accurate
-        approach requires kernel-side type checking.
+        .. note::
+            This is a heuristic — it works with pandas default formatting.
+            The 100% accurate approach requires kernel-side type checking.
+
+        Args:
+            text_plain: The ``text/plain`` repr of a DataFrame.
+
+        Returns:
+            A one-line summary like ``# [DataFrame(1000, 5)] Columns: col1, col2, col3``.
         """
         lines = text_plain.strip().split("\n")
         if not lines:
             return "# [DataFrame] <empty>"
 
-        # Try to detect shape line like "(1000, 5)" in first few lines
         shape = ""
         for line in lines[:5]:
             stripped = line.strip()
             if stripped.startswith("(") and ")" in stripped and "," in stripped:
                 shape = f" {stripped}"
 
-        # Columns are typically in the first line (for small DataFrames)
-        # or second/third line for truncated views like:
-        #     col1  col2  col3
-        # 0    x     y     z
         columns_line = lines[0].strip()
-        # Filter out row index lines (start with digit + whitespace)
         if columns_line and not columns_line[0].isdigit():
             columns = columns_line
         else:
@@ -231,7 +290,15 @@ class LLMOptimizer:
         return f"# [DataFrame] {shape or '<unknown shape>'}"
 
     def _summarize_image(self, content: dict) -> str | None:
-        """Return image metadata instead of base64 data."""
+        """Return image metadata (MIME type + size) instead of base64 data.
+
+        Args:
+            content: A MIME bundle dict.
+
+        Returns:
+            A one-line summary like ``# [Plot: image/png, ~42KB]``, or
+            ``None`` if no image MIME type is found.
+        """
         for mime in ("image/png", "image/jpeg", "image/svg+xml", "image/gif"):
             if mime in content:
                 data = content[mime]
@@ -241,8 +308,15 @@ class LLMOptimizer:
         return None
 
     def _summarize_traceback(self, text: str) -> str:
+        """Compress an error traceback to just the last line.
+
+        Args:
+            text: The full traceback text.
+
+        Returns:
+            A one-line summary like ``# [error] ValueError: invalid literal for int()``.
+        """
         lines = text.strip().split("\n")
-        # Find the last line which usually contains the actual ErrorType: message
         if lines:
             return f"# [error] {lines[-1]}"
         return "# [error] Unknown Error"

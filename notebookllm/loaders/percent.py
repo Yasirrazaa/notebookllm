@@ -1,4 +1,21 @@
-"""Percent format loader/dumper — .py files with # %% markers."""
+"""Percent format loader/dumper — ``.py`` files with cell markers.
+
+Percent-format scripts (also called "cell mode" or "VS Code interactive")
+use ``# %%`` comments as cell delimiters. This is the native format for
+VS Code's Python Interactive window, Spyder, and PyCharm's Scientific Mode.
+
+Markdown cells are encoded as ``#``-prefixed comment lines.
+
+Example::
+
+    # %% [markdown]
+    # This is a markdown cell.
+    # It explains what follows.
+
+    # %% [code]
+    import pandas as pd
+    print("hello")
+"""
 from __future__ import annotations
 
 import re
@@ -11,14 +28,36 @@ CELL_MARKER = re.compile(r"^#\s*%%\s*(?:\[(\w+)\])?\s*$")
 
 
 class PercentLoader(BaseLoader):
-    """Load percent format .py files."""
+    """Load percent-format ``.py`` files with ``# %%`` cell markers.
+
+    Detects cell boundaries by ``# %%`` markers. Markdown cells are
+    identified by the ``[markdown]`` tag in the marker line. Supports
+    triple-quoted strings (``'\"\"\"'`` and ``'''``) — markers inside
+    docstrings are ignored.
+    """
 
     def load(self, source: str | Path) -> NotebookDocument:
+        """Load a percent-format notebook from a file path.
+
+        Args:
+            source: Path to the ``.py`` file.
+
+        Returns:
+            A :class:`~notebookllm.models.NotebookDocument`.
+        """
         source = Path(source)
         content = source.read_text(encoding="utf-8")
         return self.loads(content)
 
     def loads(self, content: str) -> NotebookDocument:
+        """Load a percent-format notebook from a string.
+
+        Args:
+            content: Raw percent-format source code.
+
+        Returns:
+            A :class:`~notebookllm.models.NotebookDocument`.
+        """
         cells: list[Cell] = []
         current_type = CellType.CODE
         current_lines: list[str] = []
@@ -64,7 +103,19 @@ class PercentLoader(BaseLoader):
 
 
 def _toggle_on_triple(text: str, delimiter: str, current: bool) -> bool:
-    """Toggle boolean state on each occurrence of the triple delimiter in text."""
+    """Toggle boolean state on each occurrence of a triple delimiter in text.
+
+    Used to track whether we are inside a triple-quoted string (``\"\"\"``
+    or ``'''``) while scanning for cell markers.
+
+    Args:
+        text: The text to scan.
+        delimiter: Triple-quote delimiter (``'\"\"\"'`` or ``\"'''\"``).
+        current: Current state (``True`` = inside triple-quoted string).
+
+    Returns:
+        Updated state after processing all occurrences in *text*.
+    """
     i = 0
     while i < len(text):
         idx = text.find(delimiter, i)
@@ -76,10 +127,18 @@ def _toggle_on_triple(text: str, delimiter: str, current: bool) -> bool:
 
 
 def _strip_comment_prefix(line: str) -> str:
-    """Strip leading '# ' (or bare '#') from a markdown cell line in percent format.
+    """Strip the leading ``# `` (or bare ``#``) comment prefix from a markdown line.
 
-    Percent format encodes markdown cells as Python comments (each line starts with
-    '# ' or '#' on empty lines). This strips one level of that encoding."""
+    In percent format, markdown cells are stored as Python comments where
+    each line starts with ``# `` (or just ``#`` on empty lines). This function
+    removes one level of that encoding.
+
+    Args:
+        line: A single line from a percent-format markdown cell.
+
+    Returns:
+        The line with the ``# `` prefix removed.
+    """
     if line.startswith("# "):
         return line[2:]
     if line.startswith("#") and not line.startswith("##"):
@@ -91,8 +150,15 @@ def _strip_comment_prefix(line: str) -> str:
 def _make_source(lines: list[str], cell_type: CellType) -> str:
     """Build cell source from raw percent-format lines.
 
-    For markdown cells, strips the '# ' comment prefix from each line.
-    For other cell types (code, raw), joins lines as-is.
+    For markdown cells, strips ``# `` comment prefixes. For code and raw
+    cells, joins lines as-is.
+
+    Args:
+        lines: Raw lines including comment prefixes for markdown cells.
+        cell_type: The type of cell being built.
+
+    Returns:
+        Clean cell source text.
     """
     if cell_type == CellType.MARKDOWN:
         stripped = [_strip_comment_prefix(line) for line in lines]
@@ -101,9 +167,23 @@ def _make_source(lines: list[str], cell_type: CellType) -> str:
 
 
 class PercentDumper(BaseDumper):
-    """Dump to percent format .py files."""
+    """Dump :class:`~notebookllm.models.NotebookDocument` to percent format.
+
+    Code cells are output with ``# %% [code]`` markers. Markdown cells
+    use ``# %% [markdown]`` markers with content encoded as ``#``-prefixed
+    comment lines.
+    """
 
     def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str:
+        """Serialize a notebook to percent-format ``.py``.
+
+        Args:
+            doc: The notebook to serialize.
+            filepath: If provided, write the output to this file.
+
+        Returns:
+            Percent-format source code as a string.
+        """
         parts = []
         for cell in doc.cells:
             marker = f"# %% [{cell.cell_type.value}]"

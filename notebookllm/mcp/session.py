@@ -1,4 +1,13 @@
-"""Session manager for MCP server — SQLite-backed persistent notebook sessions."""
+"""Session manager for MCP server — SQLite-backed persistent notebook sessions.
+
+Provides :class:`SessionManager`, which stores notebook documents in both
+an in-memory cache and a local SQLite database. Sessions survive server
+restarts and are automatically cleaned up when they exceed the maximum
+count.
+
+The database is stored at ``~/.local/share/notebookllm/sessions.db``
+(or the ``XDG_DATA_HOME`` equivalent).
+"""
 from __future__ import annotations
 
 import json
@@ -16,7 +25,16 @@ from notebookllm.models import NotebookDocument
 
 @dataclass
 class Session:
-    """A single user session holding a notebook."""
+    """A single user session holding a notebook document.
+
+    Attributes:
+        doc: The notebook document for this session.
+        filepath: Optional filepath the notebook was loaded from or
+            should be saved to.
+        kernel_manager: Jupyter kernel manager (set when kernel is started).
+        kernel_client: Jupyter kernel client (set when kernel is started).
+    """
+
     doc: NotebookDocument
     filepath: str | None = None
     kernel_manager: Any = None
@@ -24,7 +42,11 @@ class Session:
 
 
 def _get_db_path() -> Path:
-    """Get the SQLite database path using XDG data directory."""
+    """Get the SQLite database path using the XDG data directory.
+
+    Returns:
+        A path like ``~/.local/share/notebookllm/sessions.db``.
+    """
     xdg_data = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
     db_dir = Path(xdg_data) / "notebookllm"
     db_dir.mkdir(parents=True, exist_ok=True)
@@ -35,9 +57,13 @@ class SessionManager:
     """Manages notebook sessions for MCP connections.
 
     Sessions are persisted in SQLite (documents serialized via
-    NotebookDocument.to_json / from_json) and cached in memory for
-    fast access.  In-memory state (kernel_client, filepath) is NOT
-    persisted to SQLite — only the NotebookDocument is.
+    :meth:`NotebookDocument.to_json` / :meth:`NotebookDocument.from_json`)
+    and cached in memory for fast access. In-memory state (kernel_client,
+    filepath) is NOT persisted to SQLite — only the NotebookDocument is.
+
+    Args:
+        db_path: Path to the SQLite database. Defaults to the XDG data
+            directory (see :func:`_get_db_path`).
     """
 
     def __init__(self, db_path: str | Path | None = None) -> None:
@@ -74,6 +100,12 @@ class SessionManager:
 
     @contextmanager
     def _conn_ctx(self) -> sqlite3.Connection:
+        """Context manager for SQLite connections.
+
+        Yields:
+            A :class:`sqlite3.Connection` with ``row_factory`` set to
+            :class:`sqlite3.Row`.
+        """
         conn = sqlite3.connect(str(self._db_path), timeout=30)
         conn.row_factory = sqlite3.Row
         try:
@@ -86,7 +118,7 @@ class SessionManager:
             conn.close()
 
     def _load_from_db(self) -> None:
-        """Load all sessions from SQLite into in-memory cache."""
+        """Load all sessions from SQLite into the in-memory cache."""
         with self._conn_ctx() as conn:
             rows = conn.execute(
                 "SELECT notebook_id, doc, metadata FROM sessions ORDER BY updated_at ASC"
@@ -96,7 +128,7 @@ class SessionManager:
             try:
                 doc = NotebookDocument.from_json(row["doc"])
             except Exception:
-                continue  # skip corrupt entries
+                continue
             meta = json.loads(row["metadata"])
             self._cache[session_id] = Session(
                 doc=doc,
@@ -104,7 +136,12 @@ class SessionManager:
             )
 
     def _persist(self, session_id: str, session: Session) -> None:
-        """Write a session to SQLite."""
+        """Write a session to the SQLite database.
+
+        Args:
+            session_id: Session identifier.
+            session: The session to persist.
+        """
         now = datetime.now(UTC).isoformat()
         doc_json = session.doc.to_json()
         meta = json.dumps({"filepath": session.filepath})
@@ -118,16 +155,26 @@ class SessionManager:
             )
 
     def _remove_from_db(self, session_id: str) -> None:
-        """Delete a session from SQLite."""
+        """Delete a session from the SQLite database.
+
+        Args:
+            session_id: Session identifier to remove.
+        """
         with self._conn_ctx() as conn:
             conn.execute("DELETE FROM sessions WHERE notebook_id = ?", (session_id,))
 
     # ------------------------------------------------------------------
-    # Public API (unchanged interface)
+    # Public API
     # ------------------------------------------------------------------
 
     def store(self, session_id: str, doc: NotebookDocument, filepath: str | None = None) -> None:
-        """Store or replace a notebook session (persisted to SQLite)."""
+        """Store or replace a notebook session (persisted to SQLite).
+
+        Args:
+            session_id: Unique session identifier.
+            doc: The notebook document to store.
+            filepath: Optional filepath associated with the session.
+        """
         with self._lock:
             session = self._cache.get(session_id)
             if session is None:
@@ -139,15 +186,37 @@ class SessionManager:
             self._persist(session_id, session)
 
     def get(self, session_id: str) -> NotebookDocument:
-        """Get notebook for a session. Raises KeyError if not found."""
+        """Get the notebook document for a session.
+
+        Args:
+            session_id: Session identifier.
+
+        Returns:
+            The :class:`~notebookllm.models.NotebookDocument`.
+
+        Raises:
+            KeyError: If the session does not exist.
+        """
         session = self.get_session(session_id)
         return session.doc
 
     def get_session(self, session_id: str) -> Session:
-        """Get the full session object. Raises KeyError if not found."""
+        """Get the full :class:`Session` object.
+
+        Falls back to loading from SQLite if the session is not in the
+        in-memory cache.
+
+        Args:
+            session_id: Session identifier.
+
+        Returns:
+            The :class:`Session` object.
+
+        Raises:
+            KeyError: If the session does not exist.
+        """
         with self._lock:
             if session_id not in self._cache:
-                # Fallback: try loading from SQLite
                 with self._conn_ctx() as conn:
                     row = conn.execute(
                         "SELECT doc, metadata FROM sessions WHERE notebook_id = ?",
@@ -165,18 +234,33 @@ class SessionManager:
             return self._cache[session_id]
 
     def get_filepath(self, session_id: str) -> str | None:
-        """Get filepath for a session, or None if not set."""
+        """Get the filepath associated with a session.
+
+        Args:
+            session_id: Session identifier.
+
+        Returns:
+            The filepath string, or ``None`` if not set.
+        """
         session = self.get_session(session_id)
         return session.filepath
 
     def delete(self, session_id: str) -> None:
-        """Delete a session from memory and SQLite. Raises KeyError if not found."""
+        """Delete a session from memory and SQLite.
+
+        Shuts down any associated kernel first.
+
+        Args:
+            session_id: Session identifier to delete.
+
+        Raises:
+            KeyError: If the session does not exist.
+        """
         with self._lock:
             if session_id not in self._cache:
                 raise KeyError(f"Session not found: {session_id}")
 
             session = self._cache[session_id]
-            # Shut down kernel if it exists
             if session.kernel_manager is not None:
                 try:
                     session.kernel_manager.shutdown_kernel()
@@ -187,6 +271,10 @@ class SessionManager:
             self._remove_from_db(session_id)
 
     def list_sessions(self) -> list[str]:
-        """List all session IDs (from cache, ordered by creation time)."""
+        """List all active session IDs.
+
+        Returns:
+            A list of session ID strings.
+        """
         with self._lock:
             return list(self._cache.keys())

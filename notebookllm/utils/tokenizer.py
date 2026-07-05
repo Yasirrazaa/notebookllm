@@ -1,6 +1,12 @@
-"""Token counting utilities for notebookllm — estimate LLM token usage.
+"""Token counting utilities — estimate LLM token usage for notebooks.
 
-Uses tiktoken when available, falls back to character-based estimation.
+Provides accurate token counting via ``tiktoken`` (GPT-4 ``cl100k_base``
+encoding) and a fast character-based fallback (``len(text) / 4``).
+
+Key functions:
+
+- :func:`count_tokens`: Token count for a single string.
+- :func:`tokenize_notebook`: Full token analysis of a notebook.
 """
 from __future__ import annotations
 
@@ -20,9 +26,18 @@ CHARS_PER_TOKEN = 4.0
 def count_tokens(text: str, encoding_name: str = DEFAULT_ENCODING) -> int:
     """Count the number of tokens in *text*.
 
-    Uses tiktoken for accurate counting when available. Falls back to a
-    character-based estimate (``len(text) / 4``) when tiktoken is not installed
-    or the requested encoding is unknown.
+    Uses ``tiktoken`` with the GPT-4 ``cl100k_base`` encoding for accurate
+    counting when the ``[token]`` extra is installed. Falls back to a
+    character-based estimate (``len(text) / 4``) when tiktoken is not
+    available or the requested encoding is unknown.
+
+    Args:
+        text: The text to count tokens for.
+        encoding_name: Name of the tiktoken encoding to use. Defaults to
+            ``"cl100k_base"`` (GPT-4).
+
+    Returns:
+        Number of tokens. Returns ``0`` for empty strings.
     """
     if not text:
         return 0
@@ -39,7 +54,14 @@ def count_tokens(text: str, encoding_name: str = DEFAULT_ENCODING) -> int:
 
 @dataclass
 class CellTokenInfo:
-    """Token usage for a single cell."""
+    """Token usage breakdown for a single cell.
+
+    Attributes:
+        cell_index: Zero-based index of the cell in the notebook.
+        cell_type: Type of the cell (``"code"``, ``"markdown"``, or ``"raw"``).
+        tokens: Number of tokens in the cell's source text.
+        preview: First 50 characters of the cell source (whitespace collapsed).
+    """
 
     cell_index: int
     cell_type: str
@@ -49,7 +71,16 @@ class CellTokenInfo:
 
 @dataclass
 class NotebookTokenReport:
-    """Token usage report for an entire notebook."""
+    """Token usage report for an entire notebook.
+
+    Produced by :func:`tokenize_notebook`.
+
+    Attributes:
+        total_tokens: Total tokens across all cells.
+        cell_tokens: Per-cell token breakdown as a list of :class:`CellTokenInfo`.
+        mode: Output mode used for counting (``"minimal"``, ``"standard"``, or ``"full"``).
+        num_cells: Number of cells in the notebook.
+    """
 
     total_tokens: int
     cell_tokens: list[CellTokenInfo] = field(default_factory=list)
@@ -58,7 +89,11 @@ class NotebookTokenReport:
 
     @property
     def token_summary(self) -> str:
-        """Human-readable summary of token usage."""
+        """Human-readable summary of token usage.
+
+        Returns:
+            A string like ``"Total: 420 tokens across 8 cells (minimal mode)"``.
+        """
         if not self.cell_tokens:
             return "Empty notebook (0 tokens)"
         return (
@@ -74,21 +109,19 @@ def tokenize_notebook(
 ) -> NotebookTokenReport:
     """Analyze token usage of a notebook in the given output mode.
 
-    Parameters
-    ----------
-    doc:
-        The notebook document to analyze.
-    mode:
-        Output verbosity mode (``"minimal"``, ``"standard"``, or ``"full"``).
-        Passed to :meth:`NotebookDocument.to_text` to obtain the full
-        serialized text for token counting.
-    encoding_name:
-        Name of the tiktoken encoding to use.
+    Counts tokens for the full notebook text (``doc.to_text(...)``) and
+    provides a per-cell breakdown of the individual cell sources.
 
-    Returns
-    -------
-    NotebookTokenReport
-        A report containing per-cell and total token counts.
+    Args:
+        doc: The notebook document to analyze.
+        mode: Output verbosity mode (``"minimal"``, ``"standard"``, or
+            ``"full"``). Passed to :meth:`NotebookDocument.to_text` to
+            obtain the full serialized text for total token counting.
+        encoding_name: Name of the tiktoken encoding to use. Defaults to
+            ``"cl100k_base"`` (GPT-4).
+
+    Returns:
+        A :class:`NotebookTokenReport` with per-cell and total token counts.
     """
     output_mode = OutputMode(mode)
     full_text = doc.to_text(mode=output_mode)

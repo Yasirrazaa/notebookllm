@@ -1,4 +1,13 @@
-"""Quarto format loader/dumper — .qmd files."""
+"""Quarto format loader/dumper — ``.qmd`` files with YAML frontmatter and fenced code blocks.
+
+Quarto (https://quarto.org) is an open-source scientific and technical
+publishing system. Notebooks use ``.qmd`` files with:
+
+- Optional ``---`` YAML frontmatter for document metadata.
+- Markdown text cells.
+- `````{python}```` / `````{r}``` fenced code blocks with optional
+  ``#|`` cell options.
+"""
 from __future__ import annotations
 
 import re
@@ -14,14 +23,34 @@ CODE_CHUNK_RE = re.compile(r"```\{(\w+)\}\s*\n(.*?)```", re.DOTALL)
 
 
 class QuartoLoader(BaseLoader):
-    """Load quarto .qmd files."""
+    """Load Quarto ``.qmd`` files.
+
+    Parses YAML frontmatter, markdown text between code blocks, and
+    fenced code blocks with their language tags and ``#|`` cell options.
+    """
 
     def load(self, source: str | Path) -> NotebookDocument:
+        """Load a Quarto file from disk.
+
+        Args:
+            source: Path to the ``.qmd`` file.
+
+        Returns:
+            A :class:`~notebookllm.models.NotebookDocument`.
+        """
         source = Path(source)
         content = source.read_text(encoding="utf-8")
         return self.loads(content)
 
     def loads(self, content: str) -> NotebookDocument:
+        """Load a Quarto notebook from a string.
+
+        Args:
+            content: Raw ``.qmd`` content.
+
+        Returns:
+            A :class:`~notebookllm.models.NotebookDocument`.
+        """
         cells: list[Cell] = []
         metadata: dict[str, object] = {}
 
@@ -79,9 +108,21 @@ class QuartoLoader(BaseLoader):
 
 
 class QuartoDumper(BaseDumper):
-    """Dump to quarto .qmd format."""
+    """Dump :class:`~notebookllm.models.NotebookDocument` to Quarto ``.qmd`` format.
+
+    Preserves YAML frontmatter, cell language tags, and ``#|`` cell options.
+    """
 
     def dump(self, doc: NotebookDocument, filepath: Path | None = None) -> str:
+        """Serialize a notebook to Quarto format.
+
+        Args:
+            doc: The notebook to serialize.
+            filepath: If provided, write the output to this file.
+
+        Returns:
+            The ``.qmd`` content as a string.
+        """
         parts = []
 
         # YAML frontmatter
@@ -95,7 +136,6 @@ class QuartoDumper(BaseDumper):
             if cell.cell_type == CellType.CODE:
                 lang = cell.language or (cell.metadata.get("language", "python") if cell.metadata else "python")
                 parts.append(f"```{{{lang}}}")
-                # Preserve cell options if present
                 if cell.metadata and "quarto_options" in cell.metadata:
                     for k, v in cell.metadata["quarto_options"].items():
                         parts.append(f"#| {k}: {v}")
