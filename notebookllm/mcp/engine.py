@@ -153,7 +153,7 @@ class KernelPool:
 
         msg_id = client.execute(cell_source)
         try:
-            reply = client.get_shell_msg(timeout=timeout)
+            reply = client.get_shell_msg(timeout=timeout)  # type: ignore[attr-defined]
         except TimeoutError:
             return "", f"Cell execution timed out after {timeout}s"
 
@@ -165,7 +165,7 @@ class KernelPool:
         outputs = []
         while True:
             try:
-                msg = client.get_iopub_msg(timeout=5)
+                msg = client.get_iopub_msg(timeout=5)  # type: ignore[attr-defined]
                 if msg["parent_header"].get("msg_id") == msg_id:
                     msg_type = msg["msg_type"]
                     content = msg["content"]

@@ -95,7 +95,8 @@ class LLMOptimizer:
         Returns:
             The optimized text, trimmed to fit within the token budget.
         """
-        budget = self.max_tokens
+        assert self.max_tokens is not None
+        budget: int = self.max_tokens
 
         saved_mode = self.mode
         saved_summary = self.summarize_outputs

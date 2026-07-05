@@ -14,6 +14,7 @@ import json
 import os
 import sqlite3
 import threading
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -99,14 +100,14 @@ class SessionManager:
     # ------------------------------------------------------------------
 
     @contextmanager
-    def _conn_ctx(self) -> sqlite3.Connection:
+    def _conn_ctx(self) -> Iterator[sqlite3.Connection]:
         """Context manager for SQLite connections.
 
         Yields:
             A :class:`sqlite3.Connection` with ``row_factory`` set to
             :class:`sqlite3.Row`.
         """
-        conn = sqlite3.connect(str(self._db_path), timeout=30)
+        conn: sqlite3.Connection = sqlite3.connect(str(self._db_path), timeout=30)
         conn.row_factory = sqlite3.Row
         try:
             yield conn
