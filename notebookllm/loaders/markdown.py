@@ -102,7 +102,10 @@ class MarkdownDumper(BaseDumper):
         parts = []
         for cell in doc.cells:
             if cell.cell_type == CellType.CODE:
-                lang = cell.language or (cell.metadata.get("language", "python") if cell.metadata else "python")
+                if cell.metadata:
+                    lang = cell.language or cell.metadata.get("language", "python")
+                else:
+                    lang = cell.language or "python"
                 parts.append(f"```{lang}")
                 parts.append(cell.source)
                 parts.append("```")

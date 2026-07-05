@@ -5,6 +5,7 @@ syntax highlighting). All commands accept a file path and produce output
 to stdout or a specified output file.
 """
 from __future__ import annotations
+
 from pathlib import Path
 
 import click
@@ -72,7 +73,13 @@ def _batch_output_path(source: str, outdir: str, fmt: str | None) -> str:
 @click.option("-f", "--format", "fmt", help="Output format (ipynb, percent, quarto, markdown)")
 @click.option("-m", "--mode", type=click.Choice(["minimal", "standard", "full"]), default="minimal",
               help="LLM output mode")
-def convert(files: tuple[str, ...], output: str | None, outdir: str | None, fmt: str | None, mode: str):
+def convert(
+    files: tuple[str, ...],
+    output: str | None,
+    outdir: str | None,
+    fmt: str | None,
+    mode: str,
+):
     """Convert notebook(s) between formats.
 
     When no ``--output`` or ``--outdir`` is given, outputs LLM-optimized
@@ -83,7 +90,10 @@ def convert(files: tuple[str, ...], output: str | None, outdir: str | None, fmt:
     console = Console()
 
     if len(files) > 1 and output:
-        console.print("[red]Error:[/red] --output cannot be used with multiple files (use --outdir instead).")
+        console.print(
+            "[red]Error:[/red] --output cannot be used with multiple files"
+            " (use --outdir instead)."
+        )
         raise click.Abort()
 
     if len(files) > 1 or outdir:
@@ -180,7 +190,11 @@ def search(file: str, query: str, cell_type: str | None):
     for idx, cell in results:
         preview = cell.source[:80].replace("\n", " ")
         import re
-        preview = re.sub(f"({re.escape(query)})", r"[bold green]\1[/bold green]", preview, flags=re.IGNORECASE)
+        escaped = re.escape(query)
+        preview = re.sub(
+            f"({escaped})", r"[bold green]\1[/bold green]",
+            preview, flags=re.IGNORECASE,
+        )
         table.add_row(str(idx), cell.cell_type.value, preview)
 
     console.print(table)
@@ -197,7 +211,8 @@ def get(file: str, index: int):
     from rich.syntax import Syntax
     console = Console()
     console.print(f"Cell [{index}] ({cell.cell_type.value}):")
-    syntax = Syntax(cell.source, "python" if cell.cell_type == CellType.CODE else "markdown", theme="monokai")
+    lang = "python" if cell.cell_type == CellType.CODE else "markdown"
+    syntax = Syntax(cell.source, lang, theme="monokai")
     console.print(syntax)
 
 

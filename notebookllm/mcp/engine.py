@@ -11,7 +11,7 @@ import asyncio
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Literal
 
 from notebookllm.models import Cell, CellType
@@ -111,7 +111,7 @@ class KernelPool:
         except ImportError:
             raise ImportError(
                 "notebookllm[execute] not installed. Run: pip install notebookllm[execute]"
-            )
+            ) from None
 
         return await asyncio.to_thread(self._sync_start_kernel, session_id, kernel_name)
 

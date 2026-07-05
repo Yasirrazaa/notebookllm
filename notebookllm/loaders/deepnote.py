@@ -96,7 +96,11 @@ def _cell_output_to_deepnote(output: CellOutput) -> dict:
         d["evalue"] = str(output.content)
         d["traceback"] = []
     else:
-        d["data"] = output.content if isinstance(output.content, dict) else {"text/plain": str(output.content)}
+        d["data"] = (
+    output.content
+    if isinstance(output.content, dict)
+    else {"text/plain": str(output.content)}
+)
     return d
 
 
@@ -256,7 +260,9 @@ class DeepnoteDumper(BaseDumper):
         """
         notebooks_map: dict[str, list[Cell]] = {}
         for cell in doc.cells:
-            nb_name = cell.metadata.get("notebook_name") if isinstance(cell.metadata, dict) else None
+            nb_name = (
+    cell.metadata.get("notebook_name") if isinstance(cell.metadata, dict) else None
+)
             nb_name = nb_name or "Notebook"
             notebooks_map.setdefault(nb_name, []).append(cell)
 
@@ -278,7 +284,11 @@ class DeepnoteDumper(BaseDumper):
             }
 
             first_cell = cells[0] if cells else None
-            if first_cell and isinstance(first_cell.metadata, dict) and first_cell.metadata.get("notebook_id"):
+            if (
+    first_cell
+    and isinstance(first_cell.metadata, dict)
+    and first_cell.metadata.get("notebook_id")
+):
                 notebook["id"] = first_cell.metadata["notebook_id"]
 
             notebooks.append(notebook)

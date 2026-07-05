@@ -1,4 +1,4 @@
-"""LLM Optimizer — converts :class:`~notebookllm.models.NotebookDocument` to LLM-optimized plain text.
+"""LLM Optimizer — converts NotebookDocument to LLM-optimized plain text.
 
 Produces clean, token-efficient text representations of notebooks for
 LLM consumption. Supports four output modes with different verbosity
@@ -124,9 +124,13 @@ class LLMOptimizer:
                 self.summarize_outputs = saved_summary
                 return text
 
-            for pri, idx in priorities:
-                if idx in kept_indices and (pri < 2 or sum(1 for i in kept_indices if doc.cells[i].cell_type == CellType.MARKDOWN) > 1):
-                    kept_indices.discard(idx)
+            for _pri, _idx in priorities:
+                md_count = sum(
+                    1 for i in kept_indices
+                    if doc.cells[i].cell_type == CellType.MARKDOWN
+                )
+                if _idx in kept_indices and (_pri < 2 or md_count > 1):
+                    kept_indices.discard(_idx)
                     break
             else:
                 break
@@ -250,7 +254,9 @@ class LLMOptimizer:
             return self._summarize_traceback(text)
 
         if len(text) > 500:
-            return f"# [{output.output_type or 'output'}] {text[:500]}... (truncated {len(text) - 500} chars)"
+            out_type = output.output_type or 'output'
+            remainder = len(text) - 500
+            return f"# [{out_type}] {text[:500]}... (truncated {remainder} chars)"
 
         return None
 
@@ -281,7 +287,10 @@ class LLMOptimizer:
         if columns_line and not columns_line[0].isdigit():
             columns = columns_line
         else:
-            columns = lines[1].strip() if len(lines) > 1 and not lines[1].strip()[0].isdigit() else ""
+            if len(lines) > 1 and not lines[1].strip()[0].isdigit():
+                columns = lines[1].strip()
+            else:
+                columns = ""
 
         if shape and columns:
             return f"# [DataFrame{shape}] Columns: {columns} (values hidden)"

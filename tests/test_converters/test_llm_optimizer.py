@@ -189,7 +189,12 @@ class TestSummarization:
         output = CellOutput(
             output_type="execute_result",
             content={
-                "text/plain": "(1000, 5)\n   name  age  salary\n0  Alice   30   50000\n1    Bob   25   60000",
+                "text/plain": (
+                    "(1000, 5)\n"
+                    "   name  age  salary\n"
+                    "0  Alice   30   50000\n"
+                    "1    Bob   25   60000"
+                ),
                 "text/html": "<table>...</table>"
             }
         )
@@ -250,7 +255,11 @@ class TestSummarization:
         optimizer = LLMOptimizer(mode=OutputMode.FULL, summarize_outputs=True)
         output = CellOutput(
             output_type="error",
-            content="Traceback (most recent call last):\n  File \"<stdin>\", line 1\nZeroDivisionError: division by zero"
+            content=(
+                "Traceback (most recent call last):\n"
+                '  File "<stdin>", line 1\n'
+                "ZeroDivisionError: division by zero"
+            )
         )
         cell = Cell(cell_type=CellType.CODE, source="1/0", outputs=[output])
         doc = NotebookDocument(cells=[cell])
@@ -295,7 +304,10 @@ class TestTokenBudget:
         doc.add_cell(Cell(cell_type=CellType.CODE, source="x = 1"))  # no outputs — lowest priority
         doc.add_cell(Cell(cell_type=CellType.MARKDOWN, source="# Important Context"))
         doc.add_cell(Cell(cell_type=CellType.CODE, source="print('hello')",
-                          execution_count=1, outputs=[CellOutput(output_type="stream", content="hello")]))
+                          execution_count=1,
+                          outputs=[CellOutput(
+                              output_type="stream", content="hello"
+                          )]))
 
         result = LLMOptimizer(mode=OutputMode.FULL, max_tokens=10).optimize(doc)
         # With a tiny budget, the code cell without outputs should be dropped first

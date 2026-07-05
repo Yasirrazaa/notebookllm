@@ -191,7 +191,11 @@ class MarimoDumper(BaseDumper):
 
             if cell.cell_type == CellType.MARKDOWN:
                 md_content = cell.source.replace('"""', '\\"\\"\\"')
-                body = f'import marimo as mo\nreturn mo.md(\n    """\n{textwrap.indent(md_content, "    ")}\n    """\n)'
+                body = (
+                    "import marimo as mo\nreturn mo.md(\n"
+                    f'    """\n{textwrap.indent(md_content, "    ")}'
+                    '\n    """\n)'
+                )
             else:
                 body = cell.source
 
@@ -201,7 +205,9 @@ class MarimoDumper(BaseDumper):
             indented_body = textwrap.indent(body, "    ")
             lines.append(indented_body)
 
-            if not body.strip().endswith("return") and not re.search(r"^\s*return\b", body, flags=re.MULTILINE):
+            has_return = body.strip().endswith("return")
+            has_leading_return = re.search(r"^\s*return\b", body, flags=re.MULTILINE)
+            if not has_return and not has_leading_return:
                 lines.append("    return")
 
             lines.append("")

@@ -341,7 +341,8 @@ class TestDeepnoteIntegration:
                   version: 1
                   metadata: {{}}""")
 
-        yaml_str = "project:\n  notebooks:\n    - id: nb-001\n      name: All Types\n      blocks:" + "".join(yaml_blocks)
+        base = "project:\n  notebooks:\n    - id: nb-001\n      name: All Types\n      blocks:"
+        yaml_str = base + "".join(yaml_blocks)
         doc = DeepnoteLoader().loads(yaml_str)
         assert len(doc.cells) == len(blocks)
 

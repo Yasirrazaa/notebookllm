@@ -357,7 +357,10 @@ class TestKernelExecution:
         from unittest.mock import patch
         
         with patch("notebookllm.mcp.engine.KernelPool.start_kernel"):
-            with patch("notebookllm.mcp.engine.KernelPool.execute_cell", return_value="[stdout] executed"):
+            with patch(
+                "notebookllm.mcp.engine.KernelPool.execute_cell",
+                return_value="[stdout] executed",
+            ):
                 result = await app.call_tool("execute_cell", {
                     "session_id": "test-session",
                     "index": 0,
@@ -371,7 +374,10 @@ class TestKernelExecution:
         from unittest.mock import patch
         
         with patch("notebookllm.mcp.engine.KernelPool.start_kernel"):
-            with patch("notebookllm.mcp.engine.KernelPool.execute_all_cells", return_value="Executed 2 cells"):
+            with patch(
+                "notebookllm.mcp.engine.KernelPool.execute_all_cells",
+                return_value="Executed 2 cells",
+            ):
                 result = await app.call_tool("execute_all_cells", {
                     "session_id": "test-session",
                 })

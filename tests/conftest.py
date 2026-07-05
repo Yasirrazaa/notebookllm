@@ -1,6 +1,7 @@
 """Shared fixtures for notebookllm tests."""
-import pytest
 from pathlib import Path
+
+import pytest
 
 from notebookllm.mcp.session import SessionManager
 from notebookllm.models import Cell, CellType, NotebookDocument

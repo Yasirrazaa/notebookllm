@@ -93,9 +93,15 @@ class QuartoLoader(BaseLoader):
             cell_metadata["language"] = lang
 
             if lang in ("python", "r", "julia"):
-                cells.append(Cell(cell_type=CellType.CODE, source=code, language=lang, metadata=cell_metadata))
+                cells.append(Cell(
+                    cell_type=CellType.CODE, source=code, language=lang,
+                    metadata=cell_metadata,
+                ))
             else:
-                cells.append(Cell(cell_type=CellType.RAW, source=code, language=lang, metadata=cell_metadata))
+                cells.append(Cell(
+                    cell_type=CellType.RAW, source=code, language=lang,
+                    metadata=cell_metadata,
+                ))
 
             last_end = match.end()
 
@@ -134,7 +140,10 @@ class QuartoDumper(BaseDumper):
 
         for cell in doc.cells:
             if cell.cell_type == CellType.CODE:
-                lang = cell.language or (cell.metadata.get("language", "python") if cell.metadata else "python")
+                if cell.metadata:
+                    lang = cell.language or cell.metadata.get("language", "python")
+                else:
+                    lang = cell.language or "python"
                 parts.append(f"```{{{lang}}}")
                 if cell.metadata and "quarto_options" in cell.metadata:
                     for k, v in cell.metadata["quarto_options"].items():

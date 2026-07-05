@@ -9,13 +9,13 @@ and kernel lifecycle via :class:`~notebookllm.mcp.engine.KernelPool`.
 """
 from __future__ import annotations
 
-import asyncio
 import uuid
+
+from mcp.server.fastmcp.tools.base import ToolAnnotations
 
 from notebookllm.loaders import dump_file, load_file
 from notebookllm.mcp.session import SessionManager
 from notebookllm.models import Cell, CellType, NotebookDocument, OutputMode
-from mcp.server.fastmcp.tools.base import ToolAnnotations
 
 MAX_SESSIONS = 100
 
@@ -189,7 +189,8 @@ def create_app(session_manager: SessionManager | None = None):
         imports = set()
         for c in code_cells:
             import re
-            for m in re.finditer(r"^(?:from\s+([a-zA-Z0-9_.]+).*import|import\s+([a-zA-Z0-9_., ]+))", c.source, re.MULTILINE):
+            pattern = r"^(?:from\s+([a-zA-Z0-9_.]+).*import|import\s+([a-zA-Z0-9_., ]+))"
+            for m in re.finditer(pattern, c.source, re.MULTILINE):
                 if m.group(1):
                     imports.add(m.group(1).split(".")[0])
                 elif m.group(2):
@@ -493,7 +494,8 @@ def create_app(session_manager: SessionManager | None = None):
         imports = set()
         functions = set()
         for c in code_cells:
-            for match in re.finditer(r"^(?:from\s+([a-zA-Z0-9_.]+).*import|import\s+([a-zA-Z0-9_., ]+))", c.source, re.MULTILINE):
+            pattern = r"^(?:from\s+([a-zA-Z0-9_.]+).*import|import\s+([a-zA-Z0-9_., ]+))"
+            for match in re.finditer(pattern, c.source, re.MULTILINE):
                 if match.group(1):
                     imports.add(match.group(1).split(".")[0])
                 elif match.group(2):

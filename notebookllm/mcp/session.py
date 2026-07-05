@@ -148,8 +148,11 @@ class SessionManager:
         with self._conn_ctx() as conn:
             conn.execute(
                 """
-                INSERT OR REPLACE INTO sessions (notebook_id, created_at, updated_at, doc, metadata)
-                VALUES (?, COALESCE((SELECT created_at FROM sessions WHERE notebook_id = ?), ?), ?, ?, ?)
+                INSERT OR REPLACE INTO sessions
+                (notebook_id, created_at, updated_at, doc, metadata)
+                VALUES (?, COALESCE(
+                    (SELECT created_at FROM sessions WHERE notebook_id = ?),
+                ?), ?, ?, ?)
                 """,
                 (session_id, session_id, now, now, doc_json, meta),
             )

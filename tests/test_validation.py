@@ -190,7 +190,10 @@ class TestValidationReport:
     def test_format_text(self):
         r = ValidationReport(
             errors=[ValidationError("source", "Missing source", cell_index=1)],
-            warnings=[ValidationError("outputs", "Orphan output", severity="warning", cell_index=2)],
+            warnings=[ValidationError(
+                "outputs", "Orphan output",
+                severity="warning", cell_index=2,
+            )],
         )
         text = r.format_text()
         assert "ERROR" in text
