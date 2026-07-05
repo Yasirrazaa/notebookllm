@@ -1,0 +1,18 @@
+﻿2026-07-05T12:16:30.6391767Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-05T12:16:30.6393471Z ##[group]Run actions/configure-pages@v4
+2026-07-05T12:16:30.6393752Z with:
+2026-07-05T12:16:30.6396455Z   token: ***
+2026-07-05T12:16:30.6396954Z   enablement: false
+2026-07-05T12:16:30.6397157Z env:
+2026-07-05T12:16:30.6397408Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-07-05T12:16:30.6397840Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib/pkgconfig
+2026-07-05T12:16:30.6398265Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-07-05T12:16:30.6398637Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-07-05T12:16:30.6399004Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-07-05T12:16:30.6399410Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib
+2026-07-05T12:16:30.6399721Z ##[endgroup]
+2026-07-05T12:16:30.7089442Z (node:2401) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-07-05T12:16:30.7090277Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-07-05T12:16:30.7208237Z (node:2401) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-07-05T12:16:30.9145506Z ##[error]Get Pages site failed. Please verify that the repository has Pages enabled and configured to build using GitHub Actions, or consider exploring the `enablement` parameter for this action.
+2026-07-05T12:16:30.9157926Z ##[error]HttpError: Not Found

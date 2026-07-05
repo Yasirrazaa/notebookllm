@@ -1,0 +1,8 @@
+2026-07-05T12:16:10.7300000Z Evaluating build-and-deploy.if
+2026-07-05T12:16:10.7300000Z Evaluating: success()
+2026-07-05T12:16:10.7300000Z Result: true
+2026-07-05T12:16:11.2330000Z Job is about to start running on the hosted runner: GitHub Actions 1000000321
+2026-07-05T12:16:11.2320000Z Requested labels: ubuntu-latest
+2026-07-05T12:16:11.2320000Z Job defined at: Yasirrazaa/notebookllm/.github/workflows/docs.yml@refs/tags/v2.0.0
+2026-07-05T12:16:11.2320000Z Waiting for a runner to pick up this job...
+2026-07-05T12:16:11.2330000Z Job is waiting for a hosted runner to come online.

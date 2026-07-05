@@ -1,0 +1,89 @@
+﻿2026-07-05T12:16:16.9385128Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-05T12:16:16.9394096Z ##[group]Run actions/checkout@v4
+2026-07-05T12:16:16.9395149Z with:
+2026-07-05T12:16:16.9395842Z   repository: Yasirrazaa/notebookllm
+2026-07-05T12:16:16.9399552Z   token: ***
+2026-07-05T12:16:16.9400239Z   ssh-strict: true
+2026-07-05T12:16:16.9400927Z   ssh-user: git
+2026-07-05T12:16:16.9401608Z   persist-credentials: true
+2026-07-05T12:16:16.9402548Z   clean: true
+2026-07-05T12:16:16.9403252Z   sparse-checkout-cone-mode: true
+2026-07-05T12:16:16.9404000Z   fetch-depth: 1
+2026-07-05T12:16:16.9404676Z   fetch-tags: false
+2026-07-05T12:16:16.9405393Z   show-progress: true
+2026-07-05T12:16:16.9406086Z   lfs: false
+2026-07-05T12:16:16.9406742Z   submodules: false
+2026-07-05T12:16:16.9407491Z   set-safe-directory: true
+2026-07-05T12:16:16.9408542Z ##[endgroup]
+2026-07-05T12:16:17.0415272Z Syncing repository: Yasirrazaa/notebookllm
+2026-07-05T12:16:17.0418532Z ##[group]Getting Git version info
+2026-07-05T12:16:17.0420051Z Working directory is '/home/runner/work/notebookllm/notebookllm'
+2026-07-05T12:16:17.0422578Z [command]/usr/bin/git version
+2026-07-05T12:16:17.0476332Z git version 2.54.0
+2026-07-05T12:16:17.0501774Z ##[endgroup]
+2026-07-05T12:16:17.0516339Z Temporarily overriding HOME='/home/runner/work/_temp/41a64b6b-622c-4632-b2ea-7e07c8ea4a19' before making global git config changes
+2026-07-05T12:16:17.0519031Z Adding repository directory to the temporary git global config as a safe directory
+2026-07-05T12:16:17.0522936Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/notebookllm/notebookllm
+2026-07-05T12:16:17.0578032Z Deleting the contents of '/home/runner/work/notebookllm/notebookllm'
+2026-07-05T12:16:17.0585596Z ##[group]Initializing the repository
+2026-07-05T12:16:17.0590252Z [command]/usr/bin/git init /home/runner/work/notebookllm/notebookllm
+2026-07-05T12:16:17.0693882Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-07-05T12:16:17.0695914Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-07-05T12:16:17.0697657Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-07-05T12:16:17.0699490Z hint: call:
+2026-07-05T12:16:17.0700593Z hint:
+2026-07-05T12:16:17.0701779Z hint: 	git config --global init.defaultBranch <name>
+2026-07-05T12:16:17.0703441Z hint:
+2026-07-05T12:16:17.0704790Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-07-05T12:16:17.0706603Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-07-05T12:16:17.0708075Z hint:
+2026-07-05T12:16:17.0709120Z hint: 	git branch -m <name>
+2026-07-05T12:16:17.0710410Z hint:
+2026-07-05T12:16:17.0711752Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-07-05T12:16:17.0714820Z Initialized empty Git repository in /home/runner/work/notebookllm/notebookllm/.git/
+2026-07-05T12:16:17.0717516Z [command]/usr/bin/git remote add origin https://github.com/Yasirrazaa/notebookllm
+2026-07-05T12:16:17.0759695Z ##[endgroup]
+2026-07-05T12:16:17.0761499Z ##[group]Disabling automatic garbage collection
+2026-07-05T12:16:17.0763349Z [command]/usr/bin/git config --local gc.auto 0
+2026-07-05T12:16:17.0799590Z ##[endgroup]
+2026-07-05T12:16:17.0801926Z ##[group]Setting up auth
+2026-07-05T12:16:17.0805235Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-07-05T12:16:17.0841747Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-07-05T12:16:17.1292200Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-07-05T12:16:17.1298755Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-07-05T12:16:17.1487300Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-07-05T12:16:17.1523838Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-07-05T12:16:17.1748343Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-07-05T12:16:17.1787772Z ##[endgroup]
+2026-07-05T12:16:17.1789048Z ##[group]Fetching the repository
+2026-07-05T12:16:17.1798031Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ce9446ebde1ded5dc22f76e78b2021f6caa902e9:refs/tags/v2.0.0
+2026-07-05T12:16:17.6777948Z From https://github.com/Yasirrazaa/notebookllm
+2026-07-05T12:16:17.6780002Z  * [new ref]         ce9446ebde1ded5dc22f76e78b2021f6caa902e9 -> v2.0.0
+2026-07-05T12:16:17.6823046Z ##[endgroup]
+2026-07-05T12:16:17.6823872Z ##[group]Determining the checkout info
+2026-07-05T12:16:17.6827605Z ##[endgroup]
+2026-07-05T12:16:17.6836294Z [command]/usr/bin/git sparse-checkout disable
+2026-07-05T12:16:17.6898706Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-07-05T12:16:17.6934855Z ##[group]Checking out the ref
+2026-07-05T12:16:17.6941418Z [command]/usr/bin/git checkout --progress --force refs/tags/v2.0.0
+2026-07-05T12:16:17.7092605Z Note: switching to 'refs/tags/v2.0.0'.
+2026-07-05T12:16:17.7093354Z 
+2026-07-05T12:16:17.7093707Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-07-05T12:16:17.7094612Z changes and commit them, and you can discard any commits you make in this
+2026-07-05T12:16:17.7095703Z state without impacting any branches by switching back to a branch.
+2026-07-05T12:16:17.7096372Z 
+2026-07-05T12:16:17.7096890Z If you want to create a new branch to retain commits you create, you may
+2026-07-05T12:16:17.7097879Z do so (now or later) by using -c with the switch command. Example:
+2026-07-05T12:16:17.7098440Z 
+2026-07-05T12:16:17.7098709Z   git switch -c <new-branch-name>
+2026-07-05T12:16:17.7099022Z 
+2026-07-05T12:16:17.7099189Z Or undo this operation with:
+2026-07-05T12:16:17.7099432Z 
+2026-07-05T12:16:17.7099577Z   git switch -
+2026-07-05T12:16:17.7099787Z 
+2026-07-05T12:16:17.7100151Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-07-05T12:16:17.7100598Z 
+2026-07-05T12:16:17.7100989Z HEAD is now at ce9446e docs: comprehensive Sphinx docs with 0 warnings, API restructure, v2.0.0 release
+2026-07-05T12:16:17.7103339Z ##[endgroup]
+2026-07-05T12:16:17.7150738Z [command]/usr/bin/git log -1 --format=%H
+2026-07-05T12:16:17.7177575Z ce9446ebde1ded5dc22f76e78b2021f6caa902e9

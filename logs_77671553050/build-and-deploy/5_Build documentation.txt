@@ -1,0 +1,194 @@
+﻿2026-07-05T12:16:26.9743427Z ##[group]Run sphinx-build -b html -E docs docs/_build
+2026-07-05T12:16:26.9743982Z [36;1msphinx-build -b html -E docs docs/_build[0m
+2026-07-05T12:16:26.9776738Z shell: /usr/bin/bash -e {0}
+2026-07-05T12:16:26.9776993Z env:
+2026-07-05T12:16:26.9777259Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-07-05T12:16:26.9777861Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib/pkgconfig
+2026-07-05T12:16:26.9778286Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-07-05T12:16:26.9778664Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-07-05T12:16:26.9779028Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-07-05T12:16:26.9779394Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib
+2026-07-05T12:16:26.9779708Z ##[endgroup]
+2026-07-05T12:16:27.1849701Z [01mRunning Sphinx v9.1.0[39;49;00m
+2026-07-05T12:16:27.1857665Z [01mloading translations [en]... [39;49;00mdone
+2026-07-05T12:16:27.7292240Z [01mmaking output directory... [39;49;00mdone
+2026-07-05T12:16:27.7499511Z [01mbuilding [mo]: [39;49;00mtargets for 0 po files that are out of date
+2026-07-05T12:16:27.7500805Z [01mwriting output... [39;49;00m
+2026-07-05T12:16:27.7517364Z [01mbuilding [html]: [39;49;00mtargets for 2 source files that are out of date
+2026-07-05T12:16:27.7527427Z [01mupdating environment: [39;49;00m[new config] 2 added, 0 changed, 0 removed
+2026-07-05T12:16:29.6375569Z [2K[01mreading sources... [39;49;00m[ 50%] [35mapi[39;49;00m
+2026-07-05T12:16:29.6802050Z [2K[01mreading sources... [39;49;00m[100%] [35mindex[39;49;00m
+2026-07-05T12:16:29.6804497Z [91mWARNING: autodoc: failed to import 'commands' from module 'notebookllm.cli'; the following exception was raised:
+2026-07-05T12:16:29.6806386Z [01mlooking for now-outdated files... [39;49;00mnone found
+2026-07-05T12:16:29.6823220Z Traceback (most recent call last):
+2026-07-05T12:16:29.6841391Z [01mpickling environment... [39;49;00mdone
+2026-07-05T12:16:29.6852174Z   File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/sphinx/ext/autodoc/_dynamic/_importer.py", line 131, in _import_from_module_and_path
+2026-07-05T12:16:29.6853956Z     module = _import_module(module_name, try_reload=True)
+2026-07-05T12:16:29.6854506Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-07-05T12:16:29.6855773Z   File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/sphinx/ext/autodoc/_dynamic/_importer.py", line 221, in _import_module
+2026-07-05T12:16:29.6856991Z     module = importlib.import_module(modname)
+2026-07-05T12:16:29.6857513Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-07-05T12:16:29.6858497Z   File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/importlib/__init__.py", line 90, in import_module
+2026-07-05T12:16:29.6859567Z     return _bootstrap._gcd_import(name[level:], package, level)
+2026-07-05T12:16:29.6860175Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-07-05T12:16:29.6860855Z   File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+2026-07-05T12:16:29.6861708Z   File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+2026-07-05T12:16:29.6862842Z   File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+2026-07-05T12:16:29.6863749Z   File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+2026-07-05T12:16:29.6864610Z   File "<frozen importlib._bootstrap_external>", line 999, in exec_module
+2026-07-05T12:16:29.6865548Z   File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+2026-07-05T12:16:29.6866684Z   File "/home/runner/work/notebookllm/notebookllm/notebookllm/cli/commands.py", line 10, in <module>
+2026-07-05T12:16:29.6867605Z     import click
+2026-07-05T12:16:29.6868052Z ModuleNotFoundError: No module named 'click'
+2026-07-05T12:16:29.6868745Z  [autodoc.import_object][39;49;00m
+2026-07-05T12:16:29.6869807Z [91mWARNING: autodoc: failed to import 'server' from module 'notebookllm.mcp'; the following exception was raised:
+2026-07-05T12:16:29.6871133Z Traceback (most recent call last):
+2026-07-05T12:16:29.6872684Z   File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/sphinx/ext/autodoc/_dynamic/_importer.py", line 131, in _import_from_module_and_path
+2026-07-05T12:16:29.6874025Z     module = _import_module(module_name, try_reload=True)
+2026-07-05T12:16:29.6874877Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-07-05T12:16:29.6876114Z   File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/sphinx/ext/autodoc/_dynamic/_importer.py", line 221, in _import_module
+2026-07-05T12:16:29.6877292Z     module = importlib.import_module(modname)
+2026-07-05T12:16:29.6877804Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-07-05T12:16:29.6878738Z   File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/importlib/__init__.py", line 90, in import_module
+2026-07-05T12:16:29.6879819Z     return _bootstrap._gcd_import(name[level:], package, level)
+2026-07-05T12:16:29.6880483Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-07-05T12:16:29.6881216Z   File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+2026-07-05T12:16:29.6882077Z   File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+2026-07-05T12:16:29.6883221Z   File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+2026-07-05T12:16:29.6884155Z   File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+2026-07-05T12:16:29.6885077Z   File "<frozen importlib._bootstrap_external>", line 999, in exec_module
+2026-07-05T12:16:29.6886032Z   File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+2026-07-05T12:16:29.6887179Z   File "/home/runner/work/notebookllm/notebookllm/notebookllm/mcp/server.py", line 18, in <module>
+2026-07-05T12:16:29.6888229Z     from mcp.server.fastmcp.tools.base import ToolAnnotations
+2026-07-05T12:16:29.6888909Z ModuleNotFoundError: No module named 'mcp'
+2026-07-05T12:16:29.6889570Z  [autodoc.import_object][39;49;00m
+2026-07-05T12:16:29.6890533Z [31m/home/runner/work/notebookllm/notebookllm/docs/index.rst:424: ERROR: Malformed table.
+2026-07-05T12:16:29.6891401Z Right border not aligned or missing.
+2026-07-05T12:16:29.6891745Z 
+2026-07-05T12:16:29.6891984Z +------------+-----------------------------------+------+------+
+2026-07-05T12:16:29.6892923Z | Extension  | Format                            | Load | Dump |
+2026-07-05T12:16:29.6893542Z +============+===================================+======+======+
+2026-07-05T12:16:29.6894161Z | ``.ipynb`` | Jupyter Notebook                  | Yes  | Yes  |
+2026-07-05T12:16:29.6894810Z +------------+-----------------------------------+------+------+
+2026-07-05T12:16:29.6895448Z | ``.py``    | Percent (``# %%`` markers)        | Yes  | Yes  |
+2026-07-05T12:16:29.6896081Z +------------+-----------------------------------+------+------+
+2026-07-05T12:16:29.6896731Z | ``.py``    | Marimo (``@app.cell`` decorators) | Yes  | Yes  |
+2026-07-05T12:16:29.6897369Z +------------+-----------------------------------+------+------+
+2026-07-05T12:16:29.6897967Z | ``.qmd``   | Quarto documents                  | Yes  | Yes  |
+2026-07-05T12:16:29.6898547Z +------------+-----------------------------------+------+------+
+2026-07-05T12:16:29.6899161Z | ``.md``    | Markdown with fenced code blocks  | Yes  | Yes  |
+2026-07-05T12:16:29.6899803Z +------------+-----------------------------------+------+------+
+2026-07-05T12:16:29.6900428Z | ``.Rmd``   | R Markdown                        | Yes  | Yes  |
+2026-07-05T12:16:29.6901046Z +------------+-----------------------------------+------+------+
+2026-07-05T12:16:29.6901720Z | ``.deepnote`` | Deepnote YAML project           | Yes  | Yes  |
+2026-07-05T12:16:29.6902613Z +------------+-----------------------------------+------+------+
+2026-07-05T12:16:29.6903356Z | (none)     | Flat script (one-way export)      | No   | Yes  |
+2026-07-05T12:16:29.6904304Z +------------+-----------------------------------+------+------+ [docutils][39;49;00m
+2026-07-05T12:16:29.6905444Z [31m/home/runner/work/notebookllm/notebookllm/docs/index.rst:512: ERROR: Malformed table.
+2026-07-05T12:16:29.6906615Z Right border not aligned or missing.
+2026-07-05T12:16:29.6906952Z 
+2026-07-05T12:16:29.6907302Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6908383Z | Tool                        | Description                                     | Destructive |
+2026-07-05T12:16:29.6909153Z +=============================+=================================================+=============+
+2026-07-05T12:16:29.6910002Z | ``load`` / ``load_notebook``| Load a notebook into a session                  | No          |
+2026-07-05T12:16:29.6910934Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6911886Z | ``create`` / ``create_notebook``| Create an empty notebook session            | No          |
+2026-07-05T12:16:29.6913031Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6913914Z | ``list_sessions``           | List all active sessions                        | No          |
+2026-07-05T12:16:29.6914771Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6915716Z | ``close_session``           | Close session and clean up its kernel            | No          |
+2026-07-05T12:16:29.6916655Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6917609Z | ``save`` / ``save_notebook``| Save session to file                            | Yes         |
+2026-07-05T12:16:29.6918535Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6919443Z | ``to_text``                 | Convert to LLM text (supports ``max_tokens``)   | No          |
+2026-07-05T12:16:29.6920277Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6921183Z | ``list_cells``              | List cells with index, type, preview            | No          |
+2026-07-05T12:16:29.6921981Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6922734Z | ``get_cell``                | Get a cell by index                             | No          |
+2026-07-05T12:16:29.6923212Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6923666Z | ``add_cell``                | Add a new cell                                  | No          |
+2026-07-05T12:16:29.6924116Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6925107Z | ``edit_cell``               | Edit an existing cell                           | Yes         |
+2026-07-05T12:16:29.6925779Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6926256Z | ``delete_cell``             | Delete a cell                                   | Yes         |
+2026-07-05T12:16:29.6926720Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6927164Z | ``move_cell``               | Move a cell                                     | No          |
+2026-07-05T12:16:29.6927602Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6928597Z | ``search_cells``            | Search cells by content                         | No          |
+2026-07-05T12:16:29.6929473Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6930332Z | ``count_tokens``            | Count tokens in session                         | No          |
+2026-07-05T12:16:29.6931186Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6932113Z | ``convert`` / ``convert_format``| Convert to another format                   | No          |
+2026-07-05T12:16:29.6933557Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6934494Z | ``execute`` / ``execute_cell``| Execute a code cell (async, thread-pooled)   | Yes         |
+2026-07-05T12:16:29.6935614Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6936742Z | ``execute_all`` / ``execute_all_cells``| Execute all code cells (async)       | Yes         |
+2026-07-05T12:16:29.6937696Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6938632Z | ``list_kernels``            | List available Jupyter kernels                  | No          |
+2026-07-05T12:16:29.6939554Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6940498Z | ``fingerprint``             | Session summary (cells, imports, functions)     | No          |
+2026-07-05T12:16:29.6941451Z +-----------------------------+-------------------------------------------------+-------------+
+2026-07-05T12:16:29.6942570Z | ``diff``                    | Compare two sessions using unified diff          | No          |
+2026-07-05T12:16:29.6943771Z +-----------------------------+-------------------------------------------------+-------------+ [docutils][39;49;00m
+2026-07-05T12:16:29.6945007Z [31m/home/runner/work/notebookllm/notebookllm/docs/index.rst:557: ERROR: Malformed table.
+2026-07-05T12:16:29.6945821Z Right border not aligned or missing.
+2026-07-05T12:16:29.6946139Z 
+2026-07-05T12:16:29.6946420Z +-----------------------------------------+----------------------------------------+
+2026-07-05T12:16:29.6947152Z | URI                                     | Description                            |
+2026-07-05T12:16:29.6947797Z +=========================================+========================================+
+2026-07-05T12:16:29.6948579Z | ``notebook://{session_id}``             | Full notebook as LLM-optimized text    |
+2026-07-05T12:16:29.6949391Z +-----------------------------------------+----------------------------------------+
+2026-07-05T12:16:29.6950229Z | ``notebook://{session_id}/cells``       | Cell listing with index, type, preview |
+2026-07-05T12:16:29.6951061Z +-----------------------------------------+----------------------------------------+
+2026-07-05T12:16:29.6951891Z | ``notebook://{session_id}/cells/{index}`` | Specific cell by index                |
+2026-07-05T12:16:29.6953208Z +-----------------------------------------+----------------------------------------+ [docutils][39;49;00m
+2026-07-05T12:16:29.6954445Z [31m/home/runner/work/notebookllm/notebookllm/docs/index.rst:568: ERROR: Malformed table.
+2026-07-05T12:16:29.6955289Z Right border not aligned or missing.
+2026-07-05T12:16:29.6955620Z 
+2026-07-05T12:16:29.6955927Z +-----------------------------------------+----------------------------------------+
+2026-07-05T12:16:29.6956706Z | Prompt                                  | Description                            |
+2026-07-05T12:16:29.6957386Z +=========================================+========================================+
+2026-07-05T12:16:29.6958170Z | ``summarize_notebook(session_id)``      | Summarize notebook contents            |
+2026-07-05T12:16:29.6959018Z +-----------------------------------------+----------------------------------------+
+2026-07-05T12:16:29.6959814Z | ``review_code(session_id)``             | Review code quality                     |
+2026-07-05T12:16:29.6960610Z +-----------------------------------------+----------------------------------------+
+2026-07-05T12:16:29.6961429Z | ``explain_notebook(session_id)``        | Explain step by step                   |
+2026-07-05T12:16:29.6962780Z +-----------------------------------------+----------------------------------------+ [docutils][39;49;00m
+2026-07-05T12:16:29.6963668Z [01mchecking consistency... [39;49;00mdone
+2026-07-05T12:16:29.6964519Z [01mpreparing documents... [39;49;00mdone
+2026-07-05T12:16:29.6965071Z [01mcopying assets... [39;49;00m
+2026-07-05T12:16:29.6965597Z [01mcopying static files... [39;49;00m
+2026-07-05T12:16:29.6971743Z Writing evaluated template result to /home/runner/work/notebookllm/notebookllm/docs/_build/_static/documentation_options.js
+2026-07-05T12:16:29.6992560Z Writing evaluated template result to /home/runner/work/notebookllm/notebookllm/docs/_build/_static/language_data.js
+2026-07-05T12:16:29.7023482Z Writing evaluated template result to /home/runner/work/notebookllm/notebookllm/docs/_build/_static/basic.css
+2026-07-05T12:16:29.7190223Z Writing evaluated template result to /home/runner/work/notebookllm/notebookllm/docs/_build/_static/js/versions.js
+2026-07-05T12:16:29.7191940Z [01mcopying static files: [39;49;00mdone
+2026-07-05T12:16:29.7192870Z [01mcopying extra files... [39;49;00m
+2026-07-05T12:16:29.7194022Z [01mcopying extra files: [39;49;00mdone
+2026-07-05T12:16:29.7194604Z [01mcopying assets: [39;49;00mdone
+2026-07-05T12:16:30.0630424Z [2K[01mwriting output... [39;49;00m[ 50%] [32mapi[39;49;00m
+2026-07-05T12:16:30.1286875Z [2K[01mwriting output... [39;49;00m[100%] [32mindex[39;49;00m
+2026-07-05T12:16:30.1563901Z [01mgenerating indices... [39;49;00mgenindex py-modindex done
+2026-07-05T12:16:30.1782827Z [2K[01mhighlighting module code... [39;49;00m[  6%] [94mnotebookllm.converters.llm_optimizer[39;49;00m
+2026-07-05T12:16:30.1892385Z [2K[01mhighlighting module code... [39;49;00m[ 12%] [94mnotebookllm.loaders[39;49;00m
+2026-07-05T12:16:30.1938315Z [2K[01mhighlighting module code... [39;49;00m[ 18%] [94mnotebookllm.loaders.base[39;49;00m
+2026-07-05T12:16:30.2194229Z [2K[01mhighlighting module code... [39;49;00m[ 24%] [94mnotebookllm.loaders.deepnote[39;49;00m
+2026-07-05T12:16:30.2453573Z [2K[01mhighlighting module code... [39;49;00m[ 29%] [94mnotebookllm.loaders.ipynb[39;49;00m
+2026-07-05T12:16:30.2614028Z [2K[01mhighlighting module code... [39;49;00m[ 35%] [94mnotebookllm.loaders.marimo[39;49;00m
+2026-07-05T12:16:30.2719091Z [2K[01mhighlighting module code... [39;49;00m[ 41%] [94mnotebookllm.loaders.markdown[39;49;00m
+2026-07-05T12:16:30.2849363Z [2K[01mhighlighting module code... [39;49;00m[ 47%] [94mnotebookllm.loaders.percent[39;49;00m
+2026-07-05T12:16:30.2983779Z [2K[01mhighlighting module code... [39;49;00m[ 53%] [94mnotebookllm.loaders.quarto[39;49;00m
+2026-07-05T12:16:30.3092308Z [2K[01mhighlighting module code... [39;49;00m[ 59%] [94mnotebookllm.loaders.rmarkdown[39;49;00m
+2026-07-05T12:16:30.3154955Z [2K[01mhighlighting module code... [39;49;00m[ 65%] [94mnotebookllm.loaders.script[39;49;00m
+2026-07-05T12:16:30.3355502Z [2K[01mhighlighting module code... [39;49;00m[ 71%] [94mnotebookllm.mcp.engine[39;49;00m
+2026-07-05T12:16:30.3511260Z [2K[01mhighlighting module code... [39;49;00m[ 76%] [94mnotebookllm.mcp.session[39;49;00m
+2026-07-05T12:16:30.3771342Z [2K[01mhighlighting module code... [39;49;00m[ 82%] [94mnotebookllm.models[39;49;00m
+2026-07-05T12:16:30.3863257Z [2K[01mhighlighting module code... [39;49;00m[ 88%] [94mnotebookllm.utils.detect[39;49;00m
+2026-07-05T12:16:30.3949174Z [2K[01mhighlighting module code... [39;49;00m[ 94%] [94mnotebookllm.utils.tokenizer[39;49;00m
+2026-07-05T12:16:30.4101746Z [2K[01mhighlighting module code... [39;49;00m[100%] [94mnotebookllm.utils.validation[39;49;00m
+2026-07-05T12:16:30.4201330Z [01mwriting additional pages... [39;49;00msearch done
+2026-07-05T12:16:30.4221909Z [01mdumping search index in English (code: en)... [39;49;00mdone
+2026-07-05T12:16:30.4229645Z [01mdumping object inventory... [39;49;00mdone
+2026-07-05T12:16:30.4230629Z [01mbuild succeeded, 6 warnings.[39;49;00m
+2026-07-05T12:16:30.4231077Z 
+2026-07-05T12:16:30.4231875Z The HTML pages are in docs/_build.

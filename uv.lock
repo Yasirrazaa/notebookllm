@@ -865,6 +865,8 @@ dev = [
     { name = "tiktoken" },
 ]
 docs = [
+    { name = "click" },
+    { name = "mcp", extra = ["cli"] },
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "sphinx-rtd-theme" },
@@ -880,9 +882,11 @@ token = [
 requires-dist = [
     { name = "click", marker = "extra == 'cli'", specifier = ">=8.1" },
     { name = "click", marker = "extra == 'dev'", specifier = ">=8.1" },
+    { name = "click", marker = "extra == 'docs'", specifier = ">=8.1" },
     { name = "ijson", specifier = ">=3.5" },
     { name = "jupyter-client", specifier = ">=8.0" },
     { name = "mcp", extras = ["cli"], marker = "extra == 'dev'", specifier = ">=1.8.1" },
+    { name = "mcp", extras = ["cli"], marker = "extra == 'docs'", specifier = ">=1.8.1" },
     { name = "mcp", extras = ["cli"], marker = "extra == 'mcp'", specifier = ">=1.8.1" },
     { name = "nbformat", specifier = ">=5.9" },
     { name = "notebookllm", extras = ["cli", "mcp", "token"], marker = "extra == 'all'" },

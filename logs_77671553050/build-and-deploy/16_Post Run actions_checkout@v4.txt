@@ -1,0 +1,15 @@
+﻿2026-07-05T12:16:30.9344312Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-05T12:16:30.9345535Z Post job cleanup.
+2026-07-05T12:16:31.0168974Z [command]/usr/bin/git version
+2026-07-05T12:16:31.0214318Z git version 2.54.0
+2026-07-05T12:16:31.0293820Z Temporarily overriding HOME='/home/runner/work/_temp/d996c1e9-12da-4749-a442-f642ac4d5467' before making global git config changes
+2026-07-05T12:16:31.0295405Z Adding repository directory to the temporary git global config as a safe directory
+2026-07-05T12:16:31.0296662Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/notebookllm/notebookllm
+2026-07-05T12:16:31.0336102Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-07-05T12:16:31.0385364Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-07-05T12:16:31.0715520Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-07-05T12:16:31.0760873Z http.https://github.com/.extraheader
+2026-07-05T12:16:31.0777090Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-07-05T12:16:31.0822710Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-07-05T12:16:31.1163828Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-07-05T12:16:31.1214789Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url

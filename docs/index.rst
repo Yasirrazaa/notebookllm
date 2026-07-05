@@ -406,25 +406,46 @@ drops cells to fit within the token limit.
 Supported Formats
 -----------------
 
-+------------+-----------------------------------+------+------+
-| Extension  | Format                            | Load | Dump |
-+============+===================================+======+======+
-| ``.ipynb`` | Jupyter Notebook                  | Yes  | Yes  |
-+------------+-----------------------------------+------+------+
-| ``.py``    | Percent (``# %%`` markers)        | Yes  | Yes  |
-+------------+-----------------------------------+------+------+
-| ``.py``    | Marimo (``@app.cell`` decorators) | Yes  | Yes  |
-+------------+-----------------------------------+------+------+
-| ``.qmd``   | Quarto documents                  | Yes  | Yes  |
-+------------+-----------------------------------+------+------+
-| ``.md``    | Markdown with fenced code blocks  | Yes  | Yes  |
-+------------+-----------------------------------+------+------+
-| ``.Rmd``   | R Markdown                        | Yes  | Yes  |
-+------------+-----------------------------------+------+------+
-| ``.deepnote`` | Deepnote YAML project           | Yes  | Yes  |
-+------------+-----------------------------------+------+------+
-| (none)     | Flat script (one-way export)      | No   | Yes  |
-+------------+-----------------------------------+------+------+
+.. list-table::
+   :header-rows: 1
+   :widths: 14 45 8 8
+
+   * - Extension
+     - Format
+     - Load
+     - Dump
+   * - ``.ipynb``
+     - Jupyter Notebook
+     - Yes
+     - Yes
+   * - ``.py``
+     - Percent (``# %%`` markers)
+     - Yes
+     - Yes
+   * - ``.py``
+     - Marimo (``@app.cell`` decorators)
+     - Yes
+     - Yes
+   * - ``.qmd``
+     - Quarto documents
+     - Yes
+     - Yes
+   * - ``.md``
+     - Markdown with fenced code blocks
+     - Yes
+     - Yes
+   * - ``.Rmd``
+     - R Markdown
+     - Yes
+     - Yes
+   * - ``.deepnote``
+     - Deepnote YAML project
+     - Yes
+     - Yes
+   * - (none)
+     - Flat script (one-way export)
+     - No
+     - Yes
 
 Large File Streaming
 --------------------
@@ -500,75 +521,105 @@ Setup
 Tools (18 unique, 26 with aliases)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-+-----------------------------+-------------------------------------------------+-------------+
-| Tool                        | Description                                     | Destructive |
-+=============================+=================================================+=============+
-| ``load`` / ``load_notebook``| Load a notebook into a session                  | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``create`` / ``create_notebook``| Create an empty notebook session            | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``list_sessions``           | List all active sessions                        | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``close_session``           | Close session and clean up its kernel            | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``save`` / ``save_notebook``| Save session to file                            | Yes         |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``to_text``                 | Convert to LLM text (supports ``max_tokens``)   | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``list_cells``              | List cells with index, type, preview            | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``get_cell``                | Get a cell by index                             | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``add_cell``                | Add a new cell                                  | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``edit_cell``               | Edit an existing cell                           | Yes         |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``delete_cell``             | Delete a cell                                   | Yes         |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``move_cell``               | Move a cell                                     | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``search_cells``            | Search cells by content                         | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``count_tokens``            | Count tokens in session                         | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``convert`` / ``convert_format``| Convert to another format                   | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``execute`` / ``execute_cell``| Execute a code cell (async, thread-pooled)   | Yes         |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``execute_all`` / ``execute_all_cells``| Execute all code cells (async)       | Yes         |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``list_kernels``            | List available Jupyter kernels                  | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``fingerprint``             | Session summary (cells, imports, functions)     | No          |
-+-----------------------------+-------------------------------------------------+-------------+
-| ``diff``                    | Compare two sessions using unified diff          | No          |
-+-----------------------------+-------------------------------------------------+-------------+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 55 15
+
+   * - Tool
+     - Description
+     - Destructive
+   * - ``load`` / ``load_notebook``
+     - Load a notebook into a session
+     - No
+   * - ``create`` / ``create_notebook``
+     - Create an empty notebook session
+     - No
+   * - ``list_sessions``
+     - List all active sessions
+     - No
+   * - ``close_session``
+     - Close session and clean up its kernel
+     - No
+   * - ``save`` / ``save_notebook``
+     - Save session to file
+     - Yes
+   * - ``to_text``
+     - Convert to LLM text (supports ``max_tokens``)
+     - No
+   * - ``list_cells``
+     - List cells with index, type, preview
+     - No
+   * - ``get_cell``
+     - Get a cell by index
+     - No
+   * - ``add_cell``
+     - Add a new cell
+     - No
+   * - ``edit_cell``
+     - Edit an existing cell
+     - Yes
+   * - ``delete_cell``
+     - Delete a cell
+     - Yes
+   * - ``move_cell``
+     - Move a cell
+     - No
+   * - ``search_cells``
+     - Search cells by content
+     - No
+   * - ``count_tokens``
+     - Count tokens in session
+     - No
+   * - ``convert`` / ``convert_format``
+     - Convert to another format
+     - No
+   * - ``execute`` / ``execute_cell``
+     - Execute a code cell (async, thread-pooled)
+     - Yes
+   * - ``execute_all`` / ``execute_all_cells``
+     - Execute all code cells (async)
+     - Yes
+   * - ``list_kernels``
+     - List available Jupyter kernels
+     - No
+   * - ``fingerprint``
+     - Session summary (cells, imports, functions)
+     - No
+   * - ``diff``
+     - Compare two sessions using unified diff
+     - No
 
 Resources
 ^^^^^^^^^
 
-+-----------------------------------------+----------------------------------------+
-| URI                                     | Description                            |
-+=========================================+========================================+
-| ``notebook://{session_id}``             | Full notebook as LLM-optimized text    |
-+-----------------------------------------+----------------------------------------+
-| ``notebook://{session_id}/cells``       | Cell listing with index, type, preview |
-+-----------------------------------------+----------------------------------------+
-| ``notebook://{session_id}/cells/{index}`` | Specific cell by index                |
-+-----------------------------------------+----------------------------------------+
+.. list-table::
+   :header-rows: 1
+   :widths: 50 50
+
+   * - URI
+     - Description
+   * - ``notebook://{session_id}``
+     - Full notebook as LLM-optimized text
+   * - ``notebook://{session_id}/cells``
+     - Cell listing with index, type, preview
+   * - ``notebook://{session_id}/cells/{index}``
+     - Specific cell by index
 
 Prompts
 ^^^^^^^
 
-+-----------------------------------------+----------------------------------------+
-| Prompt                                  | Description                            |
-+=========================================+========================================+
-| ``summarize_notebook(session_id)``      | Summarize notebook contents            |
-+-----------------------------------------+----------------------------------------+
-| ``review_code(session_id)``             | Review code quality                     |
-+-----------------------------------------+----------------------------------------+
-| ``explain_notebook(session_id)``        | Explain step by step                   |
-+-----------------------------------------+----------------------------------------+
+.. list-table::
+   :header-rows: 1
+   :widths: 50 50
+
+   * - Prompt
+     - Description
+   * - ``summarize_notebook(session_id)``
+     - Summarize notebook contents
+   * - ``review_code(session_id)``
+     - Review code quality
+   * - ``explain_notebook(session_id)``
+     - Explain step by step
 
 Session Management
 ^^^^^^^^^^^^^^^^^^
