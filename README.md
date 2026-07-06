@@ -4,19 +4,19 @@
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/notebookllm)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/notebookllm?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/notebookllm)
 
-> **Package Unification**: The `notebookllm` and `notebookllm-mcp` packages have been unified.
-> The old `notebookllm-mcp` package is deprecated — use `notebookllm[mcp]` instead.
+> **⚡ Important Update: Unified Agent Experience**
+> The standalone `notebookllm-mcp` server has been natively integrated into the core `notebookllm` package. This unification provides a seamless, single-package experience for developers and AI agents alike. The legacy `notebookllm-mcp` package is now officially deprecated — please use `notebookllm[mcp]` moving forward.
 
-Convert, inspect, and optimize Jupyter notebooks for LLMs.
+Convert, inspect, and optimize Jupyter notebooks for AI Agents.
 
-`notebookllm` converts notebooks to a clean, LLM-optimized plain text format, reducing token usage by up to 80%. It reads and writes 8 formats — `.ipynb`, percent scripts, Quarto, Markdown, Marimo, R Markdown, Deepnote, and flat scripts — through a single unified API. Use it from the CLI, Python library, or MCP server.
+`notebookllm` converts notebooks to a clean, Agent-optimized plain text format, reducing token usage by up to 80%. It reads and writes 8 formats — `.ipynb`, percent scripts, Quarto, Markdown, Marimo, R Markdown, Deepnote, and flat scripts — through a single unified API. Use it from the CLI, Python library, or MCP server.
 
 ## Quick Start
 
 ```bash
 pip install notebookllm[cli]
 
-# Convert to LLM-optimized text
+# Convert to Agent-optimized text
 notebookllm convert notebook.ipynb
 
 # Convert between formats
@@ -33,13 +33,13 @@ notebookllm inspect notebook.ipynb
 from notebookllm import load_file
 
 doc = load_file("notebook.ipynb")
-print(doc.to_text())                            # minimal LLM text
+print(doc.to_text())                            # minimal Agent text
 print(doc.to_text(mode="token-budget", max_tokens=2000))  # budget mode
 ```
 
 ## Why?
 
-Raw `.ipynb` files waste LLM context. The JSON structure, metadata, execution counts, and base64-encoded image outputs burn tokens without adding value. `notebookllm` strips all that noise and produces clean text that LLMs can reason over effectively. It also writes notebooks back, enabling LLM-driven editing workflows.
+Raw `.ipynb` files waste Agent context. The JSON structure, metadata, execution counts, and base64-encoded image outputs burn tokens without adding value. `notebookllm` strips all that noise and produces clean text that AI Agents can reason over effectively. It also writes notebooks back, enabling Agent-driven editing workflows.
 
 ## Features
 
@@ -50,12 +50,11 @@ Raw `.ipynb` files waste LLM context. The JSON structure, metadata, execution co
 - **Cell operations**: Add, edit, delete, move, and search cells programmatically.
 - **Cell execution**: Run code cells via Jupyter kernels.
 - **Streaming**: Handle notebooks larger than 10 MB via ijson streaming.
-- **MCP server**: Expose all operations as MCP tools, resources, and prompts for LLM clients.
+- **MCP server**: Expose all operations as MCP tools, resources, and prompts for AI Agent clients.
 
 ## Installation
 
-> **Migrating from `notebookllm-mcp`?** The old separate MCP package is deprecated.
-> Just run `pip install notebookllm[mcp]` instead — the MCP server is now built in.
+> **Migrating from `notebookllm-mcp`?** The separate MCP package is now deprecated and fully integrated into the core library. Simply install `notebookllm[mcp]` to access the built-in MCP server.
 
 ```bash
 pip install notebookllm          # core: format conversion, streaming, execution
@@ -72,7 +71,7 @@ Without `[token]`, token counting uses a `len(text)/4` heuristic — instant but
 ## CLI
 
 ```bash
-notebookllm convert <file>              # to LLM text (stdout)
+notebookllm convert <file>              # to Agent text (stdout)
 notebookllm convert <file> -o out.py    # to file
 notebookllm convert <file> -f percent   # explicit format
 notebookllm convert <file> -m full      # include outputs
@@ -116,7 +115,7 @@ doc.to_file("output.py", fmt="percent")
 dump_file(doc, "output.md", fmt="markdown")
 ```
 
-### Converting to LLM Text
+### Converting to AI Agent Text
 
 ```python
 from notebookllm import OutputMode
@@ -191,7 +190,7 @@ print(doc.kernel_name)          # "python3", etc.
 
 ## MCP Server
 
-The MCP server exposes notebook operations for LLM clients (Claude Desktop, VS Code, Zed, etc.).
+The MCP server exposes notebook operations for AI Agent clients (Claude Desktop, VS Code, Zed, etc.).
 
 ### Setup
 
@@ -204,7 +203,8 @@ notebookllm server
 {
   "mcpServers": {
     "notebookllm": {
-      "command": "notebookllm-server"
+      "command": "uvx",
+      "args": ["--from", "notebookllm[all]", "notebookllm-server"]
     }
   }
 }
@@ -216,7 +216,8 @@ notebookllm server
   "mcp": {
     "servers": {
       "notebookllm": {
-        "command": "notebookllm-server"
+        "command": "uvx",
+        "args": ["--from", "notebookllm[all]", "notebookllm-server"]
       }
     }
   }
@@ -232,7 +233,7 @@ notebookllm server
 | `list_sessions` | List all active sessions | No |
 | `close_session` | Close session and clean up its kernel | No |
 | `save` / `save_notebook` | Save session to file | Yes |
-| `to_text` | Convert to LLM text (supports `max_tokens` for budget mode) | No |
+| `to_text` | Convert to Agent text (supports `max_tokens` for budget mode) | No |
 | `list_cells` | List cells with index, type, preview | No |
 | `get_cell` | Get a cell by index | No |
 | `add_cell` | Add a new cell | No |
@@ -252,7 +253,7 @@ notebookllm server
 
 | URI | Description |
 |-----|-------------|
-| `notebook://{session_id}` | Full notebook as LLM text |
+| `notebook://{session_id}` | Full notebook as Agent text |
 | `notebook://{session_id}/cells` | Cell listing |
 | `notebook://{session_id}/cells/{index}` | Specific cell |
 

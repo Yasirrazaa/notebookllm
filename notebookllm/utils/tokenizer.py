@@ -1,4 +1,4 @@
-"""Token counting utilities — estimate LLM token usage for notebooks.
+"""Token counting utilities — estimate AI Agent token usage for notebooks.
 
 Provides accurate token counting via ``tiktoken`` (GPT-4 ``cl100k_base``
 encoding) and a fast character-based fallback (``len(text) / 4``).

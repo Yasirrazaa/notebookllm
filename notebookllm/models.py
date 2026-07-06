@@ -9,7 +9,7 @@ Key classes:
     - :class:`Cell`: A single cell (code, markdown, or raw).
     - :class:`CellOutput`: Execution output from a code cell.
     - :class:`CellType`: Enum distinguishing code / markdown / raw cells.
-    - :class:`OutputMode`: LLM-optimized text verbosity levels.
+    - :class:`OutputMode`: Agent-optimized text verbosity levels.
 """
 from __future__ import annotations
 
@@ -46,15 +46,15 @@ class CellType(Enum):
 
 
 class OutputMode(Enum):
-    """LLM output verbosity mode for :meth:`NotebookDocument.to_text`.
+    """AI Agent output verbosity mode for :meth:`NotebookDocument.to_text`.
 
-    Controls how much detail is included in the LLM-optimized plain text
+    Controls how much detail is included in the Agent-optimized plain text
     representation of a notebook.
 
     Levels (increasing verbosity):
 
     - ``MINIMAL`` —  Cell markers (``# %% [type]``) + source code only.
-                       Cleanest for LLM input.
+                       Cleanest for Agent input.
     - ``STANDARD`` —  Adds execution count and cell metadata tags.
     - ``FULL`` —      Adds cell execution outputs (stdout, results, errors).
     """
@@ -347,7 +347,7 @@ class NotebookDocument:
     def to_text(
         self, mode: OutputMode = OutputMode.MINIMAL, *, max_tokens: int | None = None
     ) -> str:
-        """Convert the notebook to LLM-optimized plain text.
+        """Convert the notebook to Agent-optimized plain text.
 
         The output format uses ``# %% [type]`` markers for cell boundaries.
         The verbosity is controlled by the ``mode`` parameter.

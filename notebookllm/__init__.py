@@ -1,4 +1,4 @@
-"""notebookllm — Convert and optimize Jupyter notebooks for LLMs.
+"""notebookllm — Convert and optimize Jupyter notebooks for AI Agents.
 
 Supports multiple notebook formats:
 - .ipynb (Jupyter Notebook)

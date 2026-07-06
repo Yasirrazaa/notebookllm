@@ -1,6 +1,6 @@
 """MCP server for notebookllm — exposes notebook operations as MCP tools, resources, and prompts.
 
-Provides a FastMCP-based server that allows LLM clients (Claude Desktop,
+Provides a FastMCP-based server that allows AI Agent clients (Claude Desktop,
 VS Code, Zed, etc.) to load, create, edit, search, execute, and convert
 notebooks through the Model Context Protocol.
 
@@ -143,7 +143,7 @@ def create_app(session_manager: SessionManager | None = None):
 
     @mcp.resource("notebook://{session_id}")
     def notebook_text(session_id: str) -> str:
-        """Full notebook as LLM-optimized text (minimal mode)."""
+        """Full notebook as Agent-optimized text (minimal mode)."""
         doc = _get_doc_safe(session_manager, session_id)
         if doc is None:
             return f"Session not found: {session_id}"
@@ -289,7 +289,7 @@ def create_app(session_manager: SessionManager | None = None):
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     def to_text(session_id: str, mode: str = "minimal", max_tokens: int | None = None) -> str:
-        """Convert notebook to LLM-optimized text.
+        """Convert notebook to Agent-optimized text.
 
         Use ``mode='token-budget'`` with ``max_tokens`` to limit output size.
         """

@@ -17,7 +17,7 @@ from notebookllm.models import CellType, NotebookDocument, OutputMode
 @click.group()
 @click.version_option(package_name="notebookllm")
 def cli():
-    """notebookllm — Convert and optimize Jupyter notebooks for LLMs."""
+    """notebookllm — Convert and optimize Jupyter notebooks for AI Agents."""
     pass
 
 
@@ -72,7 +72,7 @@ def _batch_output_path(source: str, outdir: str, fmt: str | None) -> str:
 @click.option("--outdir", type=click.Path(), help="Output directory (batch mode)")
 @click.option("-f", "--format", "fmt", help="Output format (ipynb, percent, quarto, markdown)")
 @click.option("-m", "--mode", type=click.Choice(["minimal", "standard", "full"]), default="minimal",
-              help="LLM output mode")
+              help="AI Agent output mode")
 def convert(
     files: tuple[str, ...],
     output: str | None,
@@ -82,7 +82,7 @@ def convert(
 ):
     """Convert notebook(s) between formats.
 
-    When no ``--output`` or ``--outdir`` is given, outputs LLM-optimized
+    When no ``--output`` or ``--outdir`` is given, outputs Agent-optimized
     text to stdout. Supports batch conversion of multiple files with
     auto-named output.
     """

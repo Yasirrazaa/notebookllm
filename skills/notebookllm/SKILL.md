@@ -1,18 +1,21 @@
 ---
 name: notebookllm
-description: Convert, inspect, and optimize Jupyter notebooks for LLM consumption. CLI tool and Python library supporting 8 formats with token counting and budget mode.
+description: Convert, inspect, and optimize Jupyter notebooks for Agent consumption. CLI tool and Python library supporting 8 formats with token counting and budget mode.
 ---
 
 # notebookllm
 
-CLI tool and Python library for converting and optimizing Jupyter notebooks for LLMs. Supports 8 formats, token counting with budget mode, and batch conversion.
+CLI tool and Python library for converting and optimizing Jupyter notebooks for AI Agents. Supports 8 formats, token counting with budget mode, and batch conversion.
+
+> **⚡ Important Update: Unified Agent Experience**
+> The standalone `notebookllm-mcp` server has been natively integrated into the core `notebookllm` package. This unification provides a seamless, single-package experience for developers and AI agents alike. The legacy `notebookllm-mcp` package is now officially deprecated — please use `notebookllm[mcp]` moving forward.
 
 ## Triggers
 
 Use when the user asks to:
 - convert a notebook between formats (ipynb, percent, quarto, markdown, rmarkdown, marimo, deepnote, script)
 - batch convert multiple notebooks at once
-- optimize a notebook for LLM input (minimal/standard/full output modes)
+- optimize a notebook for Agent input (minimal/standard/full output modes)
 - count tokens in a notebook or limit output to a token budget
 - inspect notebook structure (cell count, types, previews)
 - search cells by content or type
@@ -23,10 +26,10 @@ Use when the user asks to:
 
 ### `notebookllm convert`
 
-Convert between formats or to LLM-optimized text. Supports single files and batch mode.
+Convert between formats or to Agent-optimized text. Supports single files and batch mode.
 
 ```bash
-# To LLM-optimized text (stdout)
+# To Agent-optimized text (stdout)
 notebookllm convert notebook.ipynb
 
 # To a specific format
@@ -102,16 +105,16 @@ notebookllm server --transport sse  # SSE
 
 ## Output Modes
 
-Controls how much detail appears in the LLM-optimized text output from `convert`:
+Controls how much detail appears in the Agent-optimized text output from `convert`:
 
-- **minimal** (default) — `# %% [type]` markers + source code only. Cleanest for LLM input.
+- **minimal** (default) — `# %% [type]` markers + source code only. Cleanest for Agent input.
 - **standard** — Adds execution count and metadata per cell.
 - **full** — Adds cell execution outputs (stdout, results, errors).
 - **token-budget** — Drops lowest-priority cells to stay within a `max_tokens` budget. Drop order: bare code (first) → code with outputs → markdown (last, kept longest).
 
 ## Token Counting
 
-Measures notebook token consumption for LLM context planning.
+Measures notebook token consumption for Agent context planning.
 
 **CLI**: `notebookllm tokens <file>` prints total token count. `--breakdown` shows per-cell table with index, type, tokens, and preview.
 
@@ -138,7 +141,7 @@ print(f"{len(doc.cells)} cells, format={doc.source_format}, lang={doc.language}"
 for i, cell in enumerate(doc.cells):
     print(f"  [{i}] {cell.cell_type.value:10s} {cell.source[:60]}")
 
-# ── Convert to LLM text ──────────────────────────
+# ── Convert to Agent text ──────────────────────────
 text = doc.to_text()                                        # minimal (default)
 text = doc.to_text(mode=OutputMode.STANDARD)                # + execution counts
 text = doc.to_text(mode=OutputMode.FULL)                    # + outputs
@@ -178,6 +181,7 @@ dump_file(doc, "output.md", fmt="markdown")
 ```bash
 pip install notebookllm            # core (format conversion, streaming, execution)
 pip install notebookllm[cli]       # + CLI (click, rich)
+pip install notebookllm[mcp]       # + MCP server
 pip install notebookllm[token]     # + accurate token counting (tiktoken)
 pip install notebookllm[all]       # everything
 ```

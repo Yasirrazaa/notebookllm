@@ -1,9 +1,9 @@
 notebookllm
 ===========
 
-Convert, inspect, and optimize Jupyter notebooks for Large Language Models.
+Convert, inspect, and optimize Jupyter notebooks for AI Agents (Claude Code, Cursor, GitHub Copilot, etc.).
 
-``notebookllm`` converts notebooks to a clean, LLM-optimized plain text format,
+``notebookllm`` converts notebooks to a clean, Agent-optimized plain text format,
 reducing token usage by up to 80%. It reads and writes **8 formats** — ``.ipynb``,
 percent scripts, Quarto, Markdown, Marimo, R Markdown, Deepnote, and flat scripts —
 through a single unified API. Use it from the CLI, Python library, or MCP server.
@@ -16,13 +16,18 @@ through a single unified API. Use it from the CLI, Python library, or MCP server
    :target: https://pypi.org/project/notebookllm
    :alt: Downloads
 
+.. note::
+   **⚡ Important Update: Unified Agent Experience**
+   
+   The standalone ``notebookllm-mcp`` server has been natively integrated into the core ``notebookllm`` package. This unification provides a seamless, single-package experience for developers and AI agents alike. The legacy ``notebookllm-mcp`` package is now officially deprecated — please use ``notebookllm[mcp]`` moving forward.
+
 Why?
 ----
 
-Raw ``.ipynb`` files waste LLM context. The JSON structure, metadata, execution
+Raw ``.ipynb`` files waste Agent context. The JSON structure, metadata, execution
 counts, and base64-encoded image outputs burn tokens without adding value.
-``notebookllm`` strips all that noise and produces clean text that LLMs can
-reason over effectively. It also writes notebooks back, enabling LLM-driven
+``notebookllm`` strips all that noise and produces clean text that AI Agents can
+reason over effectively. It also writes notebooks back, enabling Agent-driven
 editing workflows.
 
 Features
@@ -42,7 +47,7 @@ Features
 * **Cell execution** — Run code cells via Jupyter kernels (async, thread-pooled).
 * **Streaming** — Handle notebooks larger than 10 MB via ``ijson`` streaming.
 * **MCP server** — Expose all operations as MCP tools, resources, and prompts
-  for LLM clients (Claude Desktop, VS Code, Zed, etc.).
+  for AI Agent clients (Claude Desktop, VS Code, Zed, etc.).
 * **Output summarization** — DataFrames get shape/column summaries, images get
   size metadata, tracebacks get compressed to the last line.
 * **Validation** — Detect orphaned outputs, empty cells, and invalid cell types.
@@ -72,7 +77,7 @@ Quick Start
 
 .. code-block:: bash
 
-   # Convert to LLM-optimized text
+   # Convert to Agent-optimized text
    notebookllm convert notebook.ipynb
 
    # Convert between formats
@@ -89,7 +94,7 @@ Quick Start
    from notebookllm import load_file
 
    doc = load_file("notebook.ipynb")
-   print(doc.to_text())                            # minimal LLM text
+   print(doc.to_text())                            # minimal Agent text
    print(doc.to_text(mode="token-budget", max_tokens=2000))  # budget mode
 
 CLI Reference
@@ -100,9 +105,9 @@ All commands support ``--help`` inline documentation.
 ``notebookllm convert``
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Convert notebook(s) between formats or to LLM-optimized text.
+Convert notebook(s) between formats or to Agent-optimized text.
 
-**Single file to LLM text (stdout)**:
+**Single file to Agent text (stdout)**:
 
 .. code-block:: bash
 
@@ -238,8 +243,8 @@ Loading and Saving
    json_str = doc.to_json()
    restored = NotebookDocument.from_json(json_str)
 
-Converting to LLM Text
-^^^^^^^^^^^^^^^^^^^^^^
+Converting to AI Agent Text
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -331,10 +336,10 @@ Validation
 Output Modes
 ------------
 
-Controls how much detail appears in the LLM-optimized text output:
+Controls how much detail appears in the Agent-optimized text output:
 
 * **minimal** (default) — ``# %% [type]`` markers + source code only.
-  Cleanest for LLM input. Output format::
+  Cleanest for Agent input. Output format::
 
       # %% [markdown]
       # Data Analysis Pipeline
@@ -391,7 +396,7 @@ long and rich outputs are compressed:
 Token Counting
 --------------
 
-Measures notebook token consumption for LLM context planning.
+Measures notebook token consumption for Agent context planning.
 
 **CLI**: ``notebookllm tokens <file>`` prints total token count.
 ``--breakdown`` shows a per-cell table with index, type, tokens, and preview.
@@ -481,7 +486,7 @@ lifecycle and thread-pooled execution for MCP server sessions.
 MCP Server
 ----------
 
-The MCP server exposes notebook operations for LLM clients (Claude Desktop,
+The MCP server exposes notebook operations for AI Agent clients (Claude Desktop,
 VS Code, Zed, etc.).
 
 Setup
@@ -499,7 +504,8 @@ Setup
    {
      "mcpServers": {
        "notebookllm": {
-         "command": "notebookllm-server"
+         "command": "uvx",
+         "args": ["--from", "notebookllm[all]", "notebookllm-server"]
        }
      }
    }
@@ -512,7 +518,8 @@ Setup
      "mcp": {
        "servers": {
          "notebookllm": {
-           "command": "notebookllm-server"
+           "command": "uvx",
+           "args": ["--from", "notebookllm[all]", "notebookllm-server"]
          }
        }
      }
@@ -544,7 +551,7 @@ Tools (18 unique, 26 with aliases)
      - Save session to file
      - Yes
    * - ``to_text``
-     - Convert to LLM text (supports ``max_tokens``)
+     - Convert to Agent text (supports ``max_tokens``)
      - No
    * - ``list_cells``
      - List cells with index, type, preview
@@ -599,7 +606,7 @@ Resources
    * - URI
      - Description
    * - ``notebook://{session_id}``
-     - Full notebook as LLM-optimized text
+     - Full notebook as Agent-optimized text
    * - ``notebook://{session_id}/cells``
      - Cell listing with index, type, preview
    * - ``notebook://{session_id}/cells/{index}``

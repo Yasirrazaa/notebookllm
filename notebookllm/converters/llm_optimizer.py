@@ -1,7 +1,7 @@
-"""LLM Optimizer — converts NotebookDocument to LLM-optimized plain text.
+"""AI Agent Optimizer — converts NotebookDocument to Agent-optimized plain text.
 
 Produces clean, token-efficient text representations of notebooks for
-LLM consumption. Supports four output modes with different verbosity
+Agent consumption. Supports four output modes with different verbosity
 levels and an optional token budget that drops low-priority cells
 automatically.
 """
@@ -11,7 +11,7 @@ from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument, Out
 
 
 class LLMOptimizer:
-    """Converts :class:`~notebookllm.models.NotebookDocument` to LLM-optimized text.
+    """Converts :class:`~notebookllm.models.NotebookDocument` to Agent-optimized text.
 
     The optimizer produces a clean, structured text format with ``# %% [type]``
     cell markers, optionally including metadata and outputs. When a token budget
@@ -85,7 +85,7 @@ class LLMOptimizer:
 
         Priority order (highest = kept longest):
 
-        1. Markdown cells (explanatory, most valuable for LLM understanding).
+        1. Markdown cells (explanatory, most valuable for AI Agent understanding).
         2. Code cells with outputs (executed, have results).
         3. Code cells without outputs (scaffolding — dropped first).
 
@@ -159,7 +159,7 @@ class LLMOptimizer:
         return "\n\n".join(parts)
 
     def _format_cell(self, cell: Cell) -> str:
-        """Format a single cell as LLM-optimized text.
+        """Format a single cell as Agent-optimized text.
 
         Args:
             cell: The cell to format.
@@ -189,7 +189,7 @@ class LLMOptimizer:
         return "\n".join(lines)
 
     def _format_output(self, output: CellOutput) -> str:
-        """Format a single cell output for LLM consumption.
+        """Format a single cell output for Agent consumption.
 
         If :attr:`summarize_outputs` is enabled, long outputs are compressed
         automatically (DataFrames get shape/columns summaries, images get

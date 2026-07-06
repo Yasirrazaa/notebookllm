@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "notebookllm"
 version = "2.0.0"
-description = "Convert and optimize Jupyter notebooks for LLMs"
+description = "Convert and optimize Jupyter notebooks for AI Agents"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
