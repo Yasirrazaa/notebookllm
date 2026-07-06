@@ -637,6 +637,13 @@ Each session has its own kernel (if execution is used). Sessions are
 auto-evicted (oldest first) when the limit is reached. Use
 ``close_session`` to clean up explicitly.
 
+Agent Skill Integration
+-----------------------
+
+For autonomous AI agents (like Claude Code, Cursor, GitHub Copilot Workspaces, and Antigravity), ``notebookllm`` includes a native agent skill definition located in ``skills/notebookllm/SKILL.md``. 
+
+This skill document teaches agents exactly how to leverage ``notebookllm`` to manipulate and inspect notebooks efficiently on your behalf. To equip your agent with this skill, simply ensure the ``skills/`` directory is discoverable by your agent's environment, or instruct the agent to read ``skills/notebookllm/SKILL.md`` directly.
+
 Development
 -----------
 
