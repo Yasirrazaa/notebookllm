@@ -1,9 +1,9 @@
 """CLI commands for notebookllm — convert, inspect, search, get, tokens, server.
 
+Provides a rich command-line interface for interacting with notebooks.
 Uses Click for argument parsing and Rich for formatted output (tables,
 syntax highlighting). All commands accept a file path and produce output
-to stdout or a specified output file.
-"""
+to stdout, a specified output file, or a batch output directory."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -17,7 +17,12 @@ from notebookllm.models import CellType, NotebookDocument, OutputMode
 @click.group()
 @click.version_option(package_name="notebookllm")
 def cli():
-    """notebookllm — Convert and optimize Jupyter notebooks for AI Agents."""
+    """notebookllm — Convert, inspect, and optimize Jupyter notebooks for AI Agents.
+
+    Work with Jupyter notebooks from the command line. Convert between 8+ formats,
+    inspect structure, search cells, count tokens, and start an MCP server for
+    AI Agent integration.
+    """
     pass
 
 

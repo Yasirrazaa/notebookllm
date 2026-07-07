@@ -1,7 +1,12 @@
 """ipynb loader/dumper — Jupyter notebook format (``.ipynb``).
 
-Uses ``nbformat`` for normal-sized files and optional ``ijson`` streaming
-for files larger than 10 MB.
+Uses ``nbformat`` for files under 10 MB and ``ijson`` streaming for
+larger files to avoid loading the entire JSON into memory. Falls back
+to ``nbformat`` if ``ijson`` is not installed.
+
+Handles all standard Jupyter cell types (code, markdown, raw),
+preserves cell IDs, execution counts, metadata, and all output types
+(stream, execute_result, display_data, error with rich MIME bundles).
 """
 from __future__ import annotations
 

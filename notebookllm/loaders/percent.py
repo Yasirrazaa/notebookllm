@@ -1,8 +1,8 @@
-"""Percent format loader/dumper — ``.py`` files with cell markers.
+"""Percent format loader/dumper — ``.py`` files with ``# %%`` cell markers.
 
 Percent-format scripts (also called "cell mode" or "VS Code interactive")
 use ``# %%`` comments as cell delimiters. This is the native format for
-VS Code's Python Interactive window, Spyder, and PyCharm's Scientific Mode.
+VS Code's Python Interactive window, Spyder, and PyCharm Scientific Mode.
 
 Markdown cells are encoded as ``#``-prefixed comment lines.
 
@@ -15,6 +15,9 @@ Example::
     # %% [code]
     import pandas as pd
     print("hello")
+
+The loader correctly handles triple-quoted strings (``\"\"\"`` and ``'''``)
+by ignoring ``# %%`` markers that appear inside docstrings.
 """
 from __future__ import annotations
 

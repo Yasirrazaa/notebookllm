@@ -1,12 +1,17 @@
 """Token counting utilities — estimate AI Agent token usage for notebooks.
 
 Provides accurate token counting via ``tiktoken`` (GPT-4 ``cl100k_base``
-encoding) and a fast character-based fallback (``len(text) / 4``).
+encoding) and a fast character-based fallback (``len(text) / 4``) when
+tiktoken is not available.
 
 Key functions:
 
 - :func:`count_tokens`: Token count for a single string.
-- :func:`tokenize_notebook`: Full token analysis of a notebook.
+- :func:`tokenize_notebook`: Full token analysis of a notebook with
+  per-cell breakdown.
+
+Install ``notebookllm[token]`` for accurate GPT-4 token counting, or
+use the built-in heuristic for instant approximate counts (±20%).
 """
 from __future__ import annotations
 
@@ -24,20 +29,16 @@ CHARS_PER_TOKEN = 4.0
 
 
 def count_tokens(text: str, encoding_name: str = DEFAULT_ENCODING) -> int:
-    """Count the number of tokens in *text*.
+    """Count tokens in a text string.
 
-    Uses ``tiktoken`` with the GPT-4 ``cl100k_base`` encoding for accurate
-    counting when the ``[token]`` extra is installed. Falls back to a
-    character-based estimate (``len(text) / 4``) when tiktoken is not
-    available or the requested encoding is unknown.
+    Uses tiktoken if available, falls back to character-length heuristic.
 
     Args:
         text: The text to count tokens for.
-        encoding_name: Name of the tiktoken encoding to use. Defaults to
-            ``"cl100k_base"`` (GPT-4).
+        encoding_name: Name of the tiktoken encoding (default: cl100k_base).
 
     Returns:
-        Number of tokens. Returns ``0`` for empty strings.
+        Number of tokens. Returns 0 for empty strings.
     """
     if not text:
         return 0
@@ -107,21 +108,15 @@ def tokenize_notebook(
     mode: str = "minimal",
     encoding_name: str = DEFAULT_ENCODING,
 ) -> NotebookTokenReport:
-    """Analyze token usage of a notebook in the given output mode.
-
-    Counts tokens for the full notebook text (``doc.to_text(...)``) and
-    provides a per-cell breakdown of the individual cell sources.
+    """Analyze a notebook and return per-cell and total token counts.
 
     Args:
         doc: The notebook document to analyze.
-        mode: Output verbosity mode (``"minimal"``, ``"standard"``, or
-            ``"full"``). Passed to :meth:`NotebookDocument.to_text` to
-            obtain the full serialized text for total token counting.
-        encoding_name: Name of the tiktoken encoding to use. Defaults to
-            ``"cl100k_base"`` (GPT-4).
+        mode: Output verbosity (minimal, standard, or full).
+        encoding_name: Name of the tiktoken encoding (default: cl100k_base).
 
     Returns:
-        A :class:`NotebookTokenReport` with per-cell and total token counts.
+        A NotebookTokenReport with per-cell and total token counts.
     """
     output_mode = OutputMode(mode)
     full_text = doc.to_text(mode=output_mode)

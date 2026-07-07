@@ -114,8 +114,7 @@ def loads_text(text: str, source_format: str | None = None) -> NotebookDocument:
 
     Args:
         text: The raw text content to parse.
-        source_format: Explicit format hint. If ``None``, format is detected
-            by content sniffing (see :func:`~notebookllm.utils.detect.detect_text_format`).
+        source_format: Explicit format hint. If ``None``, auto-detected by content sniffing.
 
     Returns:
         A :class:`~notebookllm.models.NotebookDocument`.

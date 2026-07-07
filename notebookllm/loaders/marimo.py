@@ -2,11 +2,12 @@
 
 Marimo (https://marimo.io) is a reactive Python notebook that stores
 notebooks as standard Python files. Cells are defined as functions
-decorated with ``@app.cell``.
+decorated with ``@app.cell``. Markdown cells are represented as
+``mo.md("...")`` calls inside code cells.
 
-Markdown cells are represented as ``mo.md("...")`` calls inside code
-cells. The loader detects this pattern and converts them to
-:attr:`~notebookllm.models.CellType.MARKDOWN` cells.
+The loader uses AST parsing to extract cell bodies, detects ``mo.md()``
+calls to identify markdown cells, and reads the ``__generated_with``
+version from module-level assignments.
 """
 from __future__ import annotations
 

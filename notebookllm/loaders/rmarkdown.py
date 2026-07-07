@@ -2,9 +2,13 @@
 
 R Markdown is a variant of Markdown used by RStudio and the ``rmarkdown``
 package. Code blocks use the `````{language}``` syntax (same as Quarto)
-and support R, Python, and other languages.
+and support R, Python, Julia, and other languages.
 
 See: https://rmarkdown.rstudio.com
+
+The loader distinguishes between R and Python code cells by setting
+the ``language`` field in cell metadata, enabling bidirectional
+conversion between R Markdown and other notebook formats.
 """
 from __future__ import annotations
 

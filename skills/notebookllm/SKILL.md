@@ -1,26 +1,29 @@
 ---
 name: notebookllm
-description: Convert, inspect, and optimize Jupyter notebooks for Agent consumption. CLI tool and Python library supporting 8 formats with token counting and budget mode.
+description: Convert, inspect, and optimize Jupyter notebooks for AI Agents. CLI tool, Python library, and MCP server supporting 8+ formats with token counting, budget mode, and batch conversion.
 ---
 
-# notebookllm
+# notebookllm — Notebook Toolkit for AI Agents
 
-CLI tool and Python library for converting and optimizing Jupyter notebooks for AI Agents. Supports 8 formats, token counting with budget mode, and batch conversion.
+CLI tool, Python library, and MCP server for converting, inspecting, and optimizing Jupyter notebooks for AI Agent consumption. Supports **8+ notebook formats**, **token counting with budget mode**, **batch conversion**, **cell editing/execution**, and **MCP server integration** for autonomous agents.
 
-> **⚡ Important Update: Unified Agent Experience**
-> The standalone `notebookllm-mcp` server has been natively integrated into the core `notebookllm` package. This unification provides a seamless, single-package experience for developers and AI agents alike. The legacy `notebookllm-mcp` package is now officially deprecated — please use `notebookllm[mcp]` moving forward.
+> **⚡ Unified Package**
+> The standalone `notebookllm-mcp` server is now fully integrated into the core `notebookllm` package. Install `notebookllm[mcp]` for everything.
 
 ## Triggers
 
-Use when the user asks to:
+Use notebookllm when the user asks to:
 - convert a notebook between formats (ipynb, percent, quarto, markdown, rmarkdown, marimo, deepnote, script)
 - batch convert multiple notebooks at once
-- optimize a notebook for Agent input (minimal/standard/full output modes)
+- optimize a notebook for AI Agent input (minimal/standard/full output modes)
 - count tokens in a notebook or limit output to a token budget
 - inspect notebook structure (cell count, types, previews)
 - search cells by content or type
 - get, add, edit, delete, or move cells
 - execute code cells via Jupyter kernel
+- compare two notebook versions (diff)
+- get a notebook fingerprint (imports, functions, cell counts)
+- start an MCP server for agent integration
 
 ## CLI Commands
 
@@ -34,6 +37,7 @@ notebookllm convert notebook.ipynb
 
 # To a specific format
 notebookllm convert notebook.ipynb -o output.py -f percent
+notebookllm convert notebook.ipynb -o output.qmd -f quarto
 
 # Output mode: minimal (default), standard, full
 notebookllm convert notebook.ipynb -m full
@@ -84,28 +88,29 @@ notebookllm tokens notebook.ipynb -m full --breakdown
 
 ### `notebookllm server`
 
-Start the MCP server for AI agent integration.
+Start the MCP server for AI Agent integration.
 
 ```bash
-notebookllm server                  # stdio (default)
-notebookllm server --transport sse  # SSE
+notebookllm server                  # stdio (default — for Claude Desktop, VS Code, Zed)
+notebookllm server --transport sse  # SSE (for HTTP-based connections)
 ```
 
 ## Supported Formats
 
 | Extension | Format | Load | Dump |
-|-----------|--------|------|------|
-| `.ipynb` | Jupyter Notebook | Yes | Yes |
-| `.py` (percent) | Python with `# %%` markers | Yes | Yes |
-| `.py` (marimo) | Marimo notebooks (`@app.cell`) | Yes | Yes |
-| `.qmd` | Quarto documents | Yes | Yes |
-| `.md` | Markdown with code blocks | Yes | Yes |
-| `.rmd` | R Markdown | Yes | Yes |
-| `.deepnote` | Deepnote YAML project | Yes | Yes |
+|-----------|--------|:----:|:----:|
+| `.ipynb` | Jupyter Notebook | ✅ | ✅ |
+| `.py` (percent) | Python with `# %%` markers | ✅ | ✅ |
+| `.py` (marimo) | Marimo notebooks (`@app.cell`) | ✅ | ✅ |
+| `.qmd` | Quarto documents | ✅ | ✅ |
+| `.md` | Markdown with code blocks | ✅ | ✅ |
+| `.Rmd` | R Markdown | ✅ | ✅ |
+| `.deepnote` | Deepnote YAML project | ✅ | ✅ |
+| `.py` | Flat script (one-way export) | ❌ | ✅ |
 
 ## Output Modes
 
-Controls how much detail appears in the Agent-optimized text output from `convert`:
+Controls how much detail appears in the Agent-optimized text output:
 
 - **minimal** (default) — `# %% [type]` markers + source code only. Cleanest for Agent input.
 - **standard** — Adds execution count and metadata per cell.
@@ -114,7 +119,7 @@ Controls how much detail appears in the Agent-optimized text output from `conver
 
 ## Token Counting
 
-Measures notebook token consumption for Agent context planning.
+Measures notebook token consumption for AI Agent context planning.
 
 **CLI**: `notebookllm tokens <file>` prints total token count. `--breakdown` shows per-cell table with index, type, tokens, and preview.
 
@@ -122,7 +127,7 @@ Measures notebook token consumption for Agent context planning.
 
 **Budget mode**: `doc.to_text(mode="token-budget", max_tokens=5000)` drops cells to fit within the token limit.
 
-**Accuracy**: Uses tiktoken (GPT-4 cl100k_base encoding) when `[token]` extra is installed. Otherwise falls back to `len(text)/4` heuristic — fast but approximate.
+**Accuracy**: Uses tiktoken (GPT-4 cl100k_base encoding) when `[token]` extra is installed. Otherwise falls back to `len(text)/4` heuristic — fast but approximate (±20%).
 
 ## Python API
 
@@ -133,7 +138,7 @@ from notebookllm.models import Cell, CellType, OutputMode
 # ── Load ──────────────────────────────────────────
 doc = NotebookDocument.from_file("notebook.ipynb")     # auto-detect format
 doc = load_file("notebook.py")                          # same thing
-doc = loads_text("# %% [code]\nprint('hi')\n")         # from string
+doc = loads_text("# %% [code]\nprint('hi')\n")         # from string (auto-detected)
 doc = NotebookDocument.from_text(text, source_format="quarto")
 
 # ── Inspect ───────────────────────────────────────
@@ -151,7 +156,7 @@ text = doc.to_text(mode="token-budget", max_tokens=5000)    # budget mode
 report = doc.token_breakdown(mode="minimal")
 print(report.token_summary)  # "Total: 420 tokens across 8 cells"
 for ct in report.cell_tokens:
-    print(f"  [{ct.index}] {ct.cell_type}: {ct.tokens} tokens — {ct.preview}")
+    print(f"  [{ct.cell_index}] {ct.cell_type}: {ct.tokens} tokens — {ct.preview}")
 
 # ── Cell operations ───────────────────────────────
 doc.add_cell(Cell(cell_type=CellType.CODE, source="x = 1"))
@@ -179,9 +184,66 @@ dump_file(doc, "output.md", fmt="markdown")
 ## Installation
 
 ```bash
-pip install notebookllm            # core (format conversion, streaming, execution)
+pip install notebookllm            # Core: format conversion, streaming, execution
 pip install notebookllm[cli]       # + CLI (click, rich)
 pip install notebookllm[mcp]       # + MCP server
-pip install notebookllm[token]     # + accurate token counting (tiktoken)
-pip install notebookllm[all]       # everything
+pip install notebookllm[token]     # + Accurate token counting (tiktoken)
+pip install notebookllm[all]       # Everything
 ```
+
+## MCP Server Integration
+
+When the user wants to set up the MCP server, configure their client:
+
+**Claude Desktop** (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "notebookllm": {
+      "command": "uvx",
+      "args": ["--from", "notebookllm[all]", "notebookllm-server"]
+    }
+  }
+}
+```
+
+**VS Code** (`.vscode/mcp.json`):
+
+Using ``uvx``:
+```json
+{
+  "mcp": {
+    "servers": {
+      "notebookllm": {
+        "command": "uvx",
+        "args": ["notebookllm-server"]
+      }
+    }
+  }
+}
+```
+
+Using ``pip``:
+```json
+{
+  "mcp": {
+    "servers": {
+      "notebookllm": {
+        "command": "python",
+        "args": ["-m", "notebookllm.mcp.server"]
+      }
+    }
+  }
+}
+```
+
+The MCP server exposes 20 tools (load, create, save, to_text, list_cells, get_cell, add_cell, edit_cell, delete_cell, move_cell, search_cells, count_tokens, convert, execute, execute_all, list_kernels, close_session, fingerprint, diff, list_sessions) plus 3 resource templates and 3 prompts.
+
+## Output Summarization
+
+When using token-budget mode or `summarize_outputs=True`:
+
+- **DataFrames**: `# [DataFrame(1000, 5)] Columns: col1, col2, col3 (values hidden)`
+- **Images**: `# [Plot: image/png, ~42KB]`
+- **Tracebacks**: `# [error] ValueError: invalid literal for int()`
+- **Long text**: Truncated at 500 chars with remainder note

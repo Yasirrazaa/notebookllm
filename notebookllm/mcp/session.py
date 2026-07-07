@@ -1,12 +1,15 @@
 """Session manager for MCP server — SQLite-backed persistent notebook sessions.
 
-Provides :class:`SessionManager`, which stores notebook documents in both
-an in-memory cache and a local SQLite database. Sessions survive server
-restarts and are automatically cleaned up when they exceed the maximum
-count.
+Provides :class:`SessionManager`, which stores :class:`NotebookDocument`
+instances in both an in-memory cache and a local SQLite database. Sessions
+survive server restarts and are auto-evicted (oldest first) when the
+maximum count of 100 is exceeded.
 
 The database is stored at ``~/.local/share/notebookllm/sessions.db``
-(or the ``XDG_DATA_HOME`` equivalent).
+(or the ``XDG_DATA_HOME`` equivalent) and uses WAL mode for concurrent
+access safety.
+
+Thread safety is ensured via a :class:`threading.Lock` on all mutations.
 """
 from __future__ import annotations
 
@@ -30,8 +33,7 @@ class Session:
 
     Attributes:
         doc: The notebook document for this session.
-        filepath: Optional filepath the notebook was loaded from or
-            should be saved to.
+        filepath: Optional filepath (loaded from or saved to).
         kernel_manager: Jupyter kernel manager (set when kernel is started).
         kernel_client: Jupyter kernel client (set when kernel is started).
     """

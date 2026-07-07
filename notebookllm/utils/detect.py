@@ -3,9 +3,12 @@
 Determines which notebook format a file or string is in by checking:
 
 - **File extension** (for :func:`detect_format`): ``.ipynb``, ``.qmd``, ``.rmd``,
-  ``.deepnote``, ``.md``, ``.py``.
+  ``.deepnote``, ``.md``, ``.py`` — maps directly to format name.
 - **Content patterns** (for :func:`detect_text_format`): ``# %%`` markers,
-  ``import marimo``, `````{python}``` blocks, JSON structure, YAML structure.
+  ``import marimo``, `````{r}```/`````{python}``` blocks, JSON structure,
+  YAML structure with ``project.notebooks`` keys.
+
+Supports automatic detection for all 8+ notebook formats.
 """
 from __future__ import annotations
 
@@ -17,17 +20,16 @@ def detect_format(filepath: Path, content: str | None = None) -> str:
 
     Detection priority:
 
-    1. ``.ipynb`` → ``"ipynb"``
-    2. ``.qmd`` → ``"quarto"``
-    3. ``.rmd`` → ``"rmarkdown"``
-    4. ``.deepnote`` → ``"deepnote"``
-    5. ``.md`` → ``"markdown"``
-    6. ``.py`` → Content-sniffed: ``"marimo"`` (if contains ``@app.cell``) or ``"percent"``
+    * ``.ipynb`` -> ``"ipynb"``
+    * ``.qmd`` -> ``"quarto"``
+    * ``.rmd`` -> ``"rmarkdown"``
+    * ``.deepnote`` -> ``"deepnote"``
+    * ``.md`` -> ``"markdown"``
+    * ``.py`` -> marimo (if contains ``@app.cell``) or percent
 
     Args:
         filepath: Path to the notebook file.
-        content: Optional file content for content-based disambiguation
-            (used to distinguish marimo from percent scripts).
+        content: Optional file content for content-based disambiguation.
 
     Returns:
         A format string: ``"ipynb"``, ``"quarto"``, ``"rmarkdown"``,

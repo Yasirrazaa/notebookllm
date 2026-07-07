@@ -4,9 +4,12 @@ Quarto (https://quarto.org) is an open-source scientific and technical
 publishing system. Notebooks use ``.qmd`` files with:
 
 - Optional ``---`` YAML frontmatter for document metadata.
-- Markdown text cells.
+- Markdown text cells between code blocks.
 - `````{python}```` / `````{r}``` fenced code blocks with optional
-  ``#|`` cell options.
+  ``#|`` cell options (e.g., ``#| echo: false``, ``#| fig-width: 8``).
+
+The loader preserves cell-level options in cell metadata under the
+``quarto_options`` key.
 """
 from __future__ import annotations
 

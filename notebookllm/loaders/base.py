@@ -65,8 +65,7 @@ class BaseDumper(ABC):
 
         Args:
             doc: The notebook to serialize.
-            filepath: If provided, the serialized content is written to
-                this file.
+            filepath: If provided, serialized content is written to this file.
 
         Returns:
             The serialized notebook as a string.

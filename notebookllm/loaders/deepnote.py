@@ -4,10 +4,13 @@ Deepnote (https://deepnote.com) is a collaborative data science platform.
 Projects are stored as YAML files with a rich block-based structure that
 includes code, markdown, SQL, charts, visualizations, and more.
 
-This loader/dumper maps Deepnote blocks onto the universal
-:class:`~notebookllm.models.Cell` model, preserving Deepnote-specific
-fields like ``block_type``, ``block_group``, ``content_hash``, and
-``sorting_key``.
+Maps Deepnote blocks onto the universal :class:`~notebookllm.models.Cell`
+model, preserving Deepnote-specific fields like ``block_type``,
+``block_group``, ``content_hash``, and ``sorting_key``.
+
+Supports custom block types: ``sql``, ``chart``, ``input``,
+``visualization``, ``big_number``, ``data_frame_viewer``, ``divider``,
+``rich_text`` — all mapped to the appropriate :class:`CellType`.
 """
 from __future__ import annotations
 

@@ -1,15 +1,15 @@
 """Core data models for notebookllm — universal notebook representation.
 
-This module defines the format-agnostic intermediate representation (CIR)
-for notebooks. Every format loader and dumper converts to/from these models,
-providing a single API for all supported notebook formats.
+Defines a format-agnostic intermediate representation (CIR) for notebooks.
+Every format loader and dumper converts to/from these models, providing a
+single, type-safe API across all supported notebook formats.
 
 Key classes:
-    - :class:`NotebookDocument`: The top-level notebook container.
+    - :class:`NotebookDocument`: Top-level notebook container.
     - :class:`Cell`: A single cell (code, markdown, or raw).
     - :class:`CellOutput`: Execution output from a code cell.
     - :class:`CellType`: Enum distinguishing code / markdown / raw cells.
-    - :class:`OutputMode`: Agent-optimized text verbosity levels.
+    - :class:`OutputMode`: AI Agent text verbosity levels.
 """
 from __future__ import annotations
 
@@ -48,15 +48,20 @@ class CellType(Enum):
 class OutputMode(Enum):
     """AI Agent output verbosity mode for :meth:`NotebookDocument.to_text`.
 
-    Controls how much detail is included in the Agent-optimized plain text
+    Controls how much detail is included in the Agent-optimized plain-text
     representation of a notebook.
 
     Levels (increasing verbosity):
 
-    - ``MINIMAL`` —  Cell markers (``# %% [type]``) + source code only.
-                       Cleanest for Agent input.
-    - ``STANDARD`` —  Adds execution count and cell metadata tags.
-    - ``FULL`` —      Adds cell execution outputs (stdout, results, errors).
+    ``MINIMAL``
+        Cell markers (``# %% [type]``) + source code only.
+        Cleanest for Agent input — ideal for high-level analysis.
+    ``STANDARD``
+        Adds execution count and cell metadata tags — useful for
+        understanding notebook execution history.
+    ``FULL``
+        Adds cell execution outputs (stdout, stderr, rich display data,
+        error tracebacks) — complete picture of notebook state.
     """
 
     MINIMAL = "minimal"
@@ -129,12 +134,9 @@ class Cell:
         execution_count: Execution counter (``None`` if never run).
         outputs: List of :class:`CellOutput` objects (code cells only).
         metadata: Arbitrary key-value metadata (tags, cell-level options).
-        cell_id: Unique cell identifier (UUID string). Auto-generated when
-            loaded from formats that don't provide one.
-        language: Programming language for this cell (e.g. ``"python"``,
-            ``"r"``, ``"sql"``, ``"julia"``).
-        block_type: Format-specific block type (Deepnote: ``"sql"``,
-            ``"visualization"``, ``"input"``, etc.).
+        cell_id: Unique cell identifier (UUID string), auto-generated when needed.
+        language: Programming language (e.g. ``"python"``, ``"r"``, ``"sql"``, ``"julia"``).
+        block_type: Format-specific block type (Deepnote: sql, visualization, input, etc.).
         block_group: Deepnote ``blockGroup`` UUID for grouped blocks.
         content_hash: Deepnote SHA-256 content hash (first 16 hex chars).
         sorting_key: Deepnote base-36 sorting key for block ordering.
@@ -222,13 +224,10 @@ class NotebookDocument:
 
     Attributes:
         cells: Ordered list of :class:`Cell` objects.
-        metadata: Notebook-level metadata (kernel spec, language info,
-            Deepnote project settings, etc.).
+        metadata: Notebook-level metadata (kernel spec, language info, Deepnote settings, etc.).
         kernel_name: Name of the Jupyter kernel (e.g. ``"python3"``).
-        language: Primary language of the notebook (e.g. ``"python"``,
-            ``"r"``). Defaults to ``"python"``.
-        source_format: The format the notebook was loaded from or will
-            be dumped to (e.g. ``"ipynb"``, ``"quarto"``, ``"marimo"``).
+        language: Primary language (``"python"``, ``"r"``). Defaults to ``"python"``.
+        source_format: Format loaded from or dumped to (``"ipynb"``, ``"quarto"``, ``"marimo"``).
     """
 
     cells: list[Cell] = field(default_factory=list)
@@ -337,8 +336,7 @@ class NotebookDocument:
 
         Args:
             filepath: Destination file path.
-            fmt: Output format override (e.g. ``"ipynb"``, ``"percent"``).
-                If ``None``, inferred from the file extension.
+            fmt: Output format override (e.g. ``"ipynb"``). If ``None``, inferred from extension.
         """
         from notebookllm.loaders import dump_file
 
@@ -354,9 +352,7 @@ class NotebookDocument:
 
         Args:
             mode: Output verbosity. Defaults to :attr:`OutputMode.MINIMAL`.
-            max_tokens: When set (and ``mode`` is ``"token-budget"``),
-                cells are dropped (lowest-priority first) to fit within
-                the token limit.
+            max_tokens: Token budget for token-budget mode (drops lowest-priority cells).
 
         Returns:
             Plain text representation of the notebook.
@@ -375,8 +371,7 @@ class NotebookDocument:
 
         Args:
             text: The plain text content to parse.
-            source_format: Explicit format hint (e.g. ``"percent"``,
-                ``"quarto"``, ``"markdown"``). If ``None``, auto-detected.
+            source_format: Explicit format hint or ``None`` for auto-detect.
 
         Returns:
             A new NotebookDocument.
@@ -392,8 +387,7 @@ class NotebookDocument:
 
         Args:
             cell_type: If set, only return cells of this type.
-            query: If set, only return cells whose source contains this
-                string (case-insensitive).
+            query: If set, only return cells whose source contains this string (case-insensitive).
 
         Returns:
             Filtered list of :class:`Cell` objects.
@@ -427,8 +421,7 @@ class NotebookDocument:
 
         Args:
             cell: The :class:`Cell` to add.
-            position: Insertion index. If ``None``, the cell is appended
-                at the end.
+            position: Insertion index. If ``None``, the cell is appended at the end.
 
         Raises:
             IndexError: If ``position`` is out of range.
@@ -473,8 +466,7 @@ class NotebookDocument:
 
         Args:
             from_index: Current index of the cell.
-            to_index: Target index. If beyond the end of the list,
-                the cell is placed at the end.
+            to_index: Target index. If beyond the end, the cell is placed at the end.
 
         Raises:
             IndexError: If ``from_index`` is out of range.

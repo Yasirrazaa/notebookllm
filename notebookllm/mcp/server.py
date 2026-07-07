@@ -1,11 +1,19 @@
-"""MCP server for notebookllm — exposes notebook operations as MCP tools, resources, and prompts.
+"""MCP server for notebookllm — exposes notebook operations via the Model Context Protocol.
 
 Provides a FastMCP-based server that allows AI Agent clients (Claude Desktop,
-VS Code, Zed, etc.) to load, create, edit, search, execute, and convert
-notebooks through the Model Context Protocol.
+VS Code, Zed, Cursor, Claude Code, etc.) to load, create, edit, search,
+execute, and convert notebooks programmatically.
 
 The server manages sessions via :class:`~notebookllm.mcp.session.SessionManager`
-and kernel lifecycle via :class:`~notebookllm.mcp.engine.KernelPool`.
+(SQLite-persisted, thread-safe) and kernel lifecycle via
+:class:`~notebookllm.mcp.engine.KernelPool` (async, thread-pooled).
+
+Features:
+- 20+ MCP tools with aliases for backward compatibility
+- 3 URI resource templates for notebook/cell access
+- 3 prompt templates (summarize, review, explain)
+- Automatic session eviction at 100 concurrent sessions
+- Optional SSE transport for remote connections
 """
 from __future__ import annotations
 

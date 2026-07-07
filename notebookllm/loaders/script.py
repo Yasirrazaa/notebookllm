@@ -1,12 +1,19 @@
 """Script format dumper — flat ``.py`` without cell markers.
 
-Converts notebooks to standalone scripts: code cells become code,
-markdown/raw cells become comments. This is a **one-way** export format
-(no loader) — there is no way to reconstruct cell boundaries from a
-flat script.
+Converts notebooks to standalone Python scripts: code cells become code,
+markdown/raw cells become ``#``-prefixed comments. This is a **one-way**
+export format (no loader) — cell boundaries cannot be reconstructed from
+a flat script.
 
 Use this format when you need a plain Python file that can be run
 directly without any notebook-aware tooling.
+
+Example output::
+
+    # %% original cell
+    # This was a markdown cell
+    x = 1
+    print(x)
 """
 from __future__ import annotations
 

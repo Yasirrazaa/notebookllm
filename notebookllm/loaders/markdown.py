@@ -1,8 +1,13 @@
 """Markdown format loader/dumper — ``.md`` files with fenced code blocks.
 
 Loads and saves notebooks as standard Markdown files. Code cells are
-stored as fenced code blocks with language tags. Markdown cells are
-stored as plain markdown text. Supports optional YAML frontmatter.
+stored as fenced code blocks with language tags (e.g., `````python```,
+`````r`````). Markdown cells are stored as plain markdown text.
+
+Supports optional YAML frontmatter. Code blocks with known languages
+(python, r, julia, javascript, typescript) become
+:attr:`~notebookllm.models.CellType.CODE` cells; others become
+:attr:`~notebookllm.models.CellType.RAW`.
 """
 from __future__ import annotations
 

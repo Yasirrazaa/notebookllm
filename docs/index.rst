@@ -1,12 +1,14 @@
 notebookllm
 ===========
 
-Convert, inspect, and optimize Jupyter notebooks for AI Agents (Claude Code, Cursor, GitHub Copilot, etc.).
+Convert, inspect, and optimize Jupyter notebooks for **AI Agents** — Claude Code,
+Cursor, GitHub Copilot, Claude Desktop, VS Code, Zed, and more.
 
 ``notebookllm`` converts notebooks to a clean, Agent-optimized plain text format,
-reducing token usage by up to 80%. It reads and writes **8 formats** — ``.ipynb``,
-percent scripts, Quarto, Markdown, Marimo, R Markdown, Deepnote, and flat scripts —
-through a single unified API. Use it from the CLI, Python library, or MCP server.
+reducing token usage by **up to 80%**. It reads and writes **8+ formats** —
+``.ipynb``, percent scripts, Quarto, Markdown, Marimo, R Markdown, Deepnote, and
+flat scripts — through a single unified API. Use it from the CLI, Python library,
+or MCP server.
 
 .. image:: https://img.shields.io/pypi/v/notebookllm
    :target: https://pypi.org/project/notebookllm
@@ -16,61 +18,87 @@ through a single unified API. Use it from the CLI, Python library, or MCP server
    :target: https://pypi.org/project/notebookllm
    :alt: Downloads
 
-.. note::
-   **⚡ Important Update: Unified Agent Experience**
-   
-   The standalone ``notebookllm-mcp`` server has been natively integrated into the core ``notebookllm`` package. This unification provides a seamless, single-package experience for developers and AI agents alike. The legacy ``notebookllm-mcp`` package is now officially deprecated — please use ``notebookllm[mcp]`` moving forward.
+.. important::
+   **⚡ Unified Package — One Install, Everything You Need**
 
-Why?
-----
+   The standalone ``notebookllm-mcp`` server has been fully integrated into the
+   core ``notebookllm`` package. Both the Python library and MCP server now ship
+   together — one ``pip install``, zero headaches. The legacy ``notebookllm-mcp``
+   package is **deprecated**. Install ``notebookllm[mcp]`` to get everything.
 
-Raw ``.ipynb`` files waste Agent context. The JSON structure, metadata, execution
-counts, and base64-encoded image outputs burn tokens without adding value.
-``notebookllm`` strips all that noise and produces clean text that AI Agents can
-reason over effectively. It also writes notebooks back, enabling Agent-driven
-editing workflows.
+---
 
-Features
---------
+Why notebookllm?
+----------------
 
-* **8 notebook formats** — Load and save ``.ipynb``, percent (``# %%``),
+Raw ``.ipynb`` files waste AI Agent context. The JSON structure, metadata,
+execution counts, and base64-encoded image outputs burn tokens without adding
+value. ``notebookllm`` strips all that noise and produces clean, structured
+text that Agents can reason over effectively.
+
+But it doesn't stop at one-way conversion. ``notebookllm`` is a **bidirectional
+notebook toolkit**: it reads, writes, edits, searches, executes, and converts
+notebooks across 8+ formats. Whether you're feeding a notebook into Claude Code,
+building a VS Code extension, or automating a data pipeline, ``notebookllm``
+has you covered.
+
+---
+
+Key Features
+------------
+
+* **8+ notebook formats** — Load and save ``.ipynb``, percent (``# %%``),
   Quarto (``.qmd``), Markdown (``.md``), Marimo (``.py``), R Markdown (``.Rmd``),
   Deepnote (``.deepnote``), and flat scripts.
 * **4 output modes** — ``minimal`` (source only), ``standard`` (+ metadata),
   ``full`` (+ outputs), ``token-budget`` (drops cells to fit a token limit).
+* **Smart token budget** — Automatically drops lowest-priority cells
+  (bare code → code with outputs → markdown) to stay within an Agent's context
+  window.
 * **Token counting** — Per-notebook and per-cell token measurement via tiktoken
-  (GPT-4) or built-in heuristic fallback. Budget mode drops lowest-priority
-  cells automatically.
+  (GPT-4 ``cl100k_base`` encoding) or built-in heuristic fallback.
 * **Batch conversion** — Convert multiple files at once with ``--outdir`` for
   auto-named output.
 * **Cell operations** — Add, edit, delete, move, and search cells programmatically.
 * **Cell execution** — Run code cells via Jupyter kernels (async, thread-pooled).
-* **Streaming** — Handle notebooks larger than 10 MB via ``ijson`` streaming.
+* **Streaming** — Handle notebooks larger than 10 MB via ``ijson`` streaming
+  (cell-by-cell, no memory spike).
 * **MCP server** — Expose all operations as MCP tools, resources, and prompts
-  for AI Agent clients (Claude Desktop, VS Code, Zed, etc.).
+  for AI Agent clients (Claude Desktop, VS Code, Zed, Cursor, Claude Code).
 * **Output summarization** — DataFrames get shape/column summaries, images get
   size metadata, tracebacks get compressed to the last line.
 * **Validation** — Detect orphaned outputs, empty cells, and invalid cell types.
 * **Atomic writes** — Crash-safe file saving via temp file + rename.
+
+---
 
 Installation
 ------------
 
 .. code-block:: bash
 
-   pip install notebookllm            # core: format conversion, streaming, execution
+   pip install notebookllm            # Core: format conversion, streaming, execution
    pip install notebookllm[cli]       # + CLI (click, rich)
    pip install notebookllm[mcp]       # + MCP server
-   pip install notebookllm[token]     # + accurate token counting (tiktoken)
-   pip install notebookllm[all]       # everything
+   pip install notebookllm[token]     # + Accurate token counting (tiktoken)
+   pip install notebookllm[all]       # Everything
 
-The base install includes all core features: format conversion, streaming,
-cell execution, and the Python API. Extras add the CLI, MCP server, and
-tiktoken-based token counting.
+Dependency breakdown:
+
+=============== ================================================================
+Extra           Packages
+=============== ================================================================
+*(base)*        ``nbformat``, ``jupyter_client``, ``ijson``, ``pyyaml``
+``[cli]``       ``click``, ``rich``
+``[mcp]``       ``mcp[cli]``
+``[token]``     ``tiktoken``
+=============== ================================================================
 
 Without ``[token]``, token counting uses a ``len(text)/4`` heuristic — instant
 but approximate (±20%). With ``[token]``, it uses GPT-4's ``cl100k_base``
 encoding for exact counts.
+
+---
 
 Quick Start
 -----------
@@ -97,52 +125,41 @@ Quick Start
    print(doc.to_text())                            # minimal Agent text
    print(doc.to_text(mode="token-budget", max_tokens=2000))  # budget mode
 
+---
+
 CLI Reference
 -------------
 
 All commands support ``--help`` inline documentation.
 
 ``notebookllm convert``
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Convert notebook(s) between formats or to Agent-optimized text.
 
-**Single file to Agent text (stdout)**:
-
 .. code-block:: bash
 
+   # Single file to Agent text (stdout)
    notebookllm convert notebook.ipynb
 
-**Single file to a specific format**:
-
-.. code-block:: bash
-
+   # Single file to a specific format
    notebookllm convert notebook.ipynb -o output.py -f percent
    notebookllm convert notebook.ipynb -o output.qmd -f quarto
 
-**Output verbosity**:
-
-.. code-block:: bash
-
+   # Output verbosity
    notebookllm convert notebook.ipynb              # minimal (default)
-   notebookllm convert notebook.ipynb -m standard  # + metadata
-   notebookllm convert notebook.ipynb -m full      # + outputs
+   notebookllm convert notebook.ipynb -m standard  # + execution counts, tags
+   notebookllm convert notebook.ipynb -m full      # + cell outputs
 
-**Batch to stdout**:
-
-.. code-block:: bash
-
+   # Batch: multiple files to stdout
    notebookllm convert a.ipynb b.qmd c.py
 
-**Batch to directory** (auto-named ``{stem}_converted.{ext}``):
-
-.. code-block:: bash
-
+   # Batch: multiple files to directory (auto-named ``{stem}_converted.{ext}``)
    notebookllm convert *.ipynb --outdir ./out
    notebookllm convert a.ipynb b.qmd --outdir ./out -f markdown
 
 ``notebookllm inspect``
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Show notebook structure — format, language, cell count, and a Rich table
 of cells with previews.
@@ -151,22 +168,8 @@ of cells with previews.
 
    notebookllm inspect notebook.ipynb
 
-Output example::
-
-   Format: ipynb
-   Cells: 12
-   Language: python
-
-   ┌───────┬──────────┬──────────────────────────────────────────────┐
-   │ Index │   Type   │ Preview                                      │
-   ├───────┼──────────┼──────────────────────────────────────────────┤
-   │   0   │ markdown │ # Data Analysis Pipeline                     │
-   │   1   │   code   │ import pandas as pd                          │
-   │   2   │   code   │ def clean_data(df):                          │
-   └───────┴──────────┴──────────────────────────────────────────────┘
-
 ``notebookllm search``
-^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Search cells by content (case-insensitive substring match). Use ``-t``
 to filter by cell type (``code``, ``markdown``, ``raw``). Results are
@@ -178,7 +181,7 @@ highlighted with Rich markup.
    notebookllm search notebook.ipynb "def train" -t code
 
 ``notebookllm get``
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 Extract a single cell by its 0-based index. Displays with Rich syntax
 highlighting.
@@ -188,7 +191,7 @@ highlighting.
    notebookllm get notebook.ipynb 3
 
 ``notebookllm tokens``
-^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Estimate token usage for a notebook. Uses tiktoken when the ``[token]``
 extra is installed, otherwise falls back to ``len(text)/4``.
@@ -200,9 +203,9 @@ extra is installed, otherwise falls back to ``len(text)/4``.
    notebookllm tokens notebook.ipynb -m full      # count with outputs
 
 ``notebookllm server``
-^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 
-Start the MCP server for AI agent integration. Uses stdio transport by
+Start the MCP server for AI Agent integration. Uses stdio transport by
 default (for Claude Desktop, VS Code, Zed). Use ``--transport sse`` for
 SSE-based connections.
 
@@ -210,6 +213,8 @@ SSE-based connections.
 
    notebookllm server                    # stdio (default)
    notebookllm server --transport sse    # SSE
+
+---
 
 Python API
 ----------
@@ -221,12 +226,12 @@ Loading and Saving
 
    from notebookllm import NotebookDocument, load_file, dump_file, loads_text
 
-   # Load (auto-detects format from extension)
+   # Load — auto-detects format from extension
    doc = load_file("notebook.ipynb")
    doc = load_file("analysis.qmd")
 
    # Load from string
-   doc = loads_text("# %% [code]\nprint('hi')\n", source_format="percent")
+   doc = loads_text("# %% [code]\\nprint('hi')\\n", source_format="percent")
 
    # Class method
    doc = NotebookDocument.from_file("notebook.ipynb")
@@ -234,7 +239,7 @@ Loading and Saving
    # From text with auto-detection
    doc = NotebookDocument.from_text(text, source_format="quarto")
 
-   # Save
+   # Save — auto-detects format from extension
    doc.to_file("output.ipynb")
    doc.to_file("output.py", fmt="percent")
    dump_file(doc, "output.md", fmt="markdown")
@@ -244,7 +249,7 @@ Loading and Saving
    restored = NotebookDocument.from_json(json_str)
 
 Converting to AI Agent Text
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -333,13 +338,16 @@ Validation
    print(report.format_text()) # human-readable error/warning listing
    print(report.is_valid)      # True if no errors
 
+---
+
 Output Modes
 ------------
 
 Controls how much detail appears in the Agent-optimized text output:
 
-* **minimal** (default) — ``# %% [type]`` markers + source code only.
-  Cleanest for Agent input. Output format::
+``minimal`` (default)
+   ``# %% [type]`` markers + source code only.
+   Cleanest for Agent input. Output format::
 
       # %% [markdown]
       # Data Analysis Pipeline
@@ -348,14 +356,16 @@ Controls how much detail appears in the Agent-optimized text output:
       import pandas as pd
       import numpy as np
 
-* **standard** — Adds execution count and cell metadata tags::
+``standard``
+   Adds execution count and cell metadata tags::
 
       # %% [code]
       # exec_count: 3
       # tags: preprocessing, data-cleaning
       df = pd.read_csv("data.csv")
 
-* **full** — Adds cell execution outputs (stdout, results, errors)::
+``full``
+   Adds cell execution outputs (stdout, results, errors)::
 
       # %% [code]
       print(df.head())
@@ -363,12 +373,15 @@ Controls how much detail appears in the Agent-optimized text output:
       # [stdout]    col1  col2
       # 0     1     2
 
-* **token-budget** — Drops lowest-priority cells to stay within a
-  ``max_tokens`` budget. Drop order:
+``token-budget``
+   Drops lowest-priority cells to stay within a ``max_tokens`` budget.
+   Drop order (highest-value kept longest):
 
-  1. Code cells without outputs (scaffolding — dropped first)
-  2. Code cells with outputs
-  3. Markdown cells (kept longest, never dropped if only one remains)
+   1. Markdown cells (explanatory — never dropped if only one remains)
+   2. Code cells with outputs (executed, have results)
+   3. Code cells without outputs (scaffolding — dropped first)
+
+---
 
 Output Summarization
 --------------------
@@ -377,26 +390,20 @@ When using ``token-budget`` mode (or with ``summarize_outputs=True`` via the
 :class:`~notebookllm.converters.llm_optimizer.LLMOptimizer` API),
 long and rich outputs are compressed:
 
-.. code-block:: python
-
-   from notebookllm.converters.llm_optimizer import LLMOptimizer
-   from notebookllm.models import OutputMode
-
-   optimizer = LLMOptimizer(mode=OutputMode.FULL, summarize_outputs=True)
-   text = optimizer.optimize(doc)
-
 * **DataFrames**: Shape and column names extracted from the ASCII repr.
   ``# [DataFrame(1000, 5)] Columns: col1, col2, col3 (values hidden)``
 * **Images**: MIME type and approximate size.
   ``# [Plot: image/png, ~42KB]``
 * **Tracebacks**: Last line only (the actual error message).
   ``# [error] ValueError: invalid literal for int()``
-* **Long text**: Truncated at 500 characters with a note.
+* **Long text**: Truncated at 500 characters with a remainder note.
+
+---
 
 Token Counting
 --------------
 
-Measures notebook token consumption for Agent context planning.
+Measures notebook token consumption for AI Agent context planning.
 
 **CLI**: ``notebookllm tokens <file>`` prints total token count.
 ``--breakdown`` shows a per-cell table with index, type, tokens, and preview.
@@ -408,55 +415,58 @@ heuristic — fast but approximate.
 **Budget mode**: ``doc.to_text(mode="token-budget", max_tokens=5000)``
 drops cells to fit within the token limit.
 
+---
+
 Supported Formats
 -----------------
 
 .. list-table::
    :header-rows: 1
-   :widths: 14 45 8 8
+   :widths: 16 44 8 8
 
    * - Extension
      - Format
      - Load
      - Dump
    * - ``.ipynb``
-     - Jupyter Notebook
-     - Yes
-     - Yes
+     - Jupyter Notebook (``nbformat`` v4)
+     - ✅
+     - ✅
    * - ``.py``
-     - Percent (``# %%`` markers)
-     - Yes
-     - Yes
+     - Percent script (``# %%`` markers)
+     - ✅
+     - ✅
    * - ``.py``
      - Marimo (``@app.cell`` decorators)
-     - Yes
-     - Yes
+     - ✅
+     - ✅
    * - ``.qmd``
-     - Quarto documents
-     - Yes
-     - Yes
+     - Quarto document
+     - ✅
+     - ✅
    * - ``.md``
      - Markdown with fenced code blocks
-     - Yes
-     - Yes
+     - ✅
+     - ✅
    * - ``.Rmd``
-     - R Markdown
-     - Yes
-     - Yes
+     - R Markdown (``rmarkdown`` package)
+     - ✅
+     - ✅
    * - ``.deepnote``
      - Deepnote YAML project
-     - Yes
-     - Yes
-   * - (none)
+     - ✅
+     - ✅
+   * - ``.py``
      - Flat script (one-way export)
-     - No
-     - Yes
+     - ❌
+     - ✅
 
 Large File Streaming
 --------------------
 
 Notebooks larger than 10 MB are parsed using ``ijson`` streaming, which
 processes cells one at a time without loading the entire JSON into memory.
+Metadata is extracted from the file tail without reading the full file.
 Falls back to ``nbformat`` if ``ijson`` is not installed.
 
 Cell Execution
@@ -473,21 +483,19 @@ MCP server tools ``execute`` and ``execute_all``:
 
 Execution is async and thread-pooled so the MCP server remains responsive.
 Kernels are started lazily per session and cleaned up when the session
-is closed. Available kernels can be listed with:
+is closed. Available kernels can be listed with ``list_kernels()``.
 
-.. code-block:: bash
-
-   # via MCP server:
-   #   list_kernels()
-
-The underlying :class:`~notebookllm.mcp.engine.KernelPool` handles kernel
+The underlying :class:`~notebookllm.mcp.engine.KernelPool` manages kernel
 lifecycle and thread-pooled execution for MCP server sessions.
+
+---
 
 MCP Server
 ----------
 
 The MCP server exposes notebook operations for AI Agent clients (Claude Desktop,
-VS Code, Zed, etc.).
+VS Code, Zed, Cursor, Claude Code). 20 unique tools with 6 backward-compatible
+aliases, plus resources and prompts.
 
 Setup
 ^^^^^
@@ -501,48 +509,105 @@ Setup
 
 .. code-block:: json
 
-   {
-     "mcpServers": {
-       "notebookllm": {
-         "command": "uvx",
-         "args": ["--from", "notebookllm[all]", "notebookllm-server"]
-       }
-     }
-   }
+    {
+      "mcpServers": {
+        "notebookllm": {
+          "command": "uvx",
+          "args": ["notebookllm-server"]
+        }
+      }
+    }
 
-**VS Code** (``.vscode/mcp.json``):
+To pin a specific version or extras:
 
 .. code-block:: json
 
-   {
-     "mcp": {
-       "servers": {
-         "notebookllm": {
-           "command": "uvx",
-           "args": ["--from", "notebookllm[all]", "notebookllm-server"]
-         }
-       }
-     }
-   }
+    {
+      "mcpServers": {
+        "notebookllm": {
+          "command": "uvx",
+          "args": ["--from", "notebookllm[all]", "notebookllm-server"]
+        }
+      }
+    }
 
-Tools (18 unique, 26 with aliases)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using ``pip`` (manual install):
 
-.. list-table::
-   :header-rows: 1
-   :widths: 35 55 15
+.. code-block:: bash
 
-   * - Tool
-     - Description
-     - Destructive
-   * - ``load`` / ``load_notebook``
-     - Load a notebook into a session
-     - No
-   * - ``create`` / ``create_notebook``
+    pip install notebookllm[mcp]
+
+.. code-block:: json
+
+    {
+      "mcpServers": {
+        "notebookllm": {
+          "command": "python",
+          "args": ["-m", "notebookllm.mcp.server"]
+        }
+      }
+    }
+
+**VS Code****VS Code** (``.vscode/mcp.json``):
+
+Using ``uvx``:
+
+.. code-block:: json
+
+    {
+      "mcp": {
+        "servers": {
+          "notebookllm": {
+            "command": "uvx",
+            "args": ["notebookllm-server"]
+          }
+        }
+      }
+    }
+
+Using ``pip``:
+
+.. code-block:: json
+
+    {
+      "mcp": {
+        "servers": {
+          "notebookllm": {
+            "command": "python",
+            "args": ["-m", "notebookllm.mcp.server"]
+          }
+        }
+      }
+    }
+
+**Zed****Zed** (``~/.config/zed/mcp.json``):
+
+Using ``uvx``:
+
+.. code-block:: json
+
+    {
+      "notebookllm": {
+        "command": "uvx",
+        "args": ["notebookllm-server"]
+      }
+    }
+
+Using ``pip``:
+
+.. code-block:: none
+
+    {
+      "notebookllm": {
+        "command": "python",
+        "args": ["-m", "notebookllm.mcp.server"]
+      }
+    }
+
      - Create an empty notebook session
      - No
    * - ``list_sessions``
-     - List all active sessions
+     - List all active sessions with cell counts
      - No
    * - ``close_session``
      - Close session and clean up its kernel
@@ -563,28 +628,28 @@ Tools (18 unique, 26 with aliases)
      - Add a new cell
      - No
    * - ``edit_cell``
-     - Edit an existing cell
+     - Edit an existing cell's source/type
      - Yes
    * - ``delete_cell``
      - Delete a cell
      - Yes
    * - ``move_cell``
-     - Move a cell
+     - Move a cell between positions
      - No
    * - ``search_cells``
-     - Search cells by content
+     - Search cells by content (case-insensitive)
      - No
    * - ``count_tokens``
-     - Count tokens in session
+     - Count tokens in session notebook
      - No
    * - ``convert`` / ``convert_format``
-     - Convert to another format
+     - Convert session to another format
      - No
    * - ``execute`` / ``execute_cell``
      - Execute a code cell (async, thread-pooled)
      - Yes
    * - ``execute_all`` / ``execute_all_cells``
-     - Execute all code cells (async)
+     - Execute all code cells sequentially
      - Yes
    * - ``list_kernels``
      - List available Jupyter kernels
@@ -622,7 +687,7 @@ Prompts
    * - Prompt
      - Description
    * - ``summarize_notebook(session_id)``
-     - Summarize notebook contents
+     - Summarize notebook contents and purpose
    * - ``review_code(session_id)``
      - Review code quality
    * - ``explain_notebook(session_id)``
@@ -631,18 +696,31 @@ Prompts
 Session Management
 ^^^^^^^^^^^^^^^^^^
 
-The MCP server maintains up to 100 concurrent sessions, persisted in a
-local SQLite database at ``~/.local/share/notebookllm/sessions.db``.
-Each session has its own kernel (if execution is used). Sessions are
-auto-evicted (oldest first) when the limit is reached. Use
-``close_session`` to clean up explicitly.
+The MCP server maintains up to **100 concurrent sessions**, persisted in a
+local SQLite database at ``~/.local/share/notebookllm/sessions.db``. Each
+session has an optional Jupyter kernel (if execution is used). Sessions are
+auto-evicted (oldest first) when the limit is reached. Sessions survive
+server restarts — use ``close_session`` to clean up explicitly.
+
+---
 
 Agent Skill Integration
 -----------------------
 
-For autonomous AI agents (like Claude Code, Cursor, GitHub Copilot Workspaces, and Antigravity), ``notebookllm`` includes a native agent skill definition located in ``skills/notebookllm/SKILL.md``. 
+For autonomous AI Agents (Claude Code, Cursor, Claude Desktop, GitHub Copilot
+Workspaces), ``notebookllm`` includes a **native agent skill** at
+``skills/notebookllm/SKILL.md``.
 
-This skill document teaches agents exactly how to leverage ``notebookllm`` to manipulate and inspect notebooks efficiently on your behalf. To equip your agent with this skill, simply ensure the ``skills/`` directory is discoverable by your agent's environment, or instruct the agent to read ``skills/notebookllm/SKILL.md`` directly.
+This skill document teaches AI Agents exactly how to leverage ``notebookllm``
+to manipulate and inspect notebooks efficiently on your behalf. To equip your
+agent with this skill, simply ensure the ``skills/`` directory is discoverable
+by your agent's environment, or instruct the agent to read
+``skills/notebookllm/SKILL.md`` directly.
+
+The skill covers: CLI commands, Python API usage, output modes, token counting,
+format conversion, and MCP server integration.
+
+---
 
 Development
 -----------
@@ -659,6 +737,8 @@ Development
    uv run ruff check .                # lint
    uv run mypy notebookllm            # type check
    uv run sphinx-build -b html -E docs docs/_build  # build this documentation
+
+---
 
 API Reference
 -------------

@@ -1,11 +1,12 @@
 """Input/output validation and atomic write utilities.
 
-Provides:
+Provides notebook integrity checks and crash-safe file writing:
 
-- :class:`ValidationReport` and related validators for notebook integrity checks.
-- :func:`atomic_write` for crash-safe file writing.
-- Legacy validation functions (``validate_filepath``, ``validate_output_format``,
-  ``validate_cell_index``, ``validate_cell_type``) for input sanitization.
+- :class:`ValidationReport` — comprehensive validation with error/warning tracking
+- :func:`validate_notebook` — run all checks on a :class:`NotebookDocument`
+- :func:`atomic_write` — crash-safe file writes via temp-file + rename
+- Legacy helpers: ``validate_filepath``, ``validate_output_format``,
+  ``validate_cell_index``, ``validate_cell_type``
 """
 from __future__ import annotations
 
@@ -25,13 +26,10 @@ class ValidationError:
     """A single validation issue found in a notebook.
 
     Attributes:
-        field: The field or property that failed validation
-            (e.g. ``"cell_type"``, ``"outputs"``, ``"source"``).
+        field: The field that failed validation (e.g. cell_type).
         message: A human-readable description of the issue.
-        severity: Either ``"error"`` (blocks usage) or ``"warning"``
-            (informational).
-        cell_index: Index of the offending cell, or ``None`` if the
-            issue is at the notebook level.
+        severity: Either error (blocks usage) or warning (informational).
+        cell_index: Index of the offending cell, or None for notebook-level.
     """
 
     field: str

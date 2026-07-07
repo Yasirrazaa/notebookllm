@@ -1,9 +1,9 @@
 """AI Agent Optimizer — converts NotebookDocument to Agent-optimized plain text.
 
-Produces clean, token-efficient text representations of notebooks for
-Agent consumption. Supports four output modes with different verbosity
-levels and an optional token budget that drops low-priority cells
-automatically.
+Produces clean, token-efficient text representations of notebooks designed
+for AI Agent consumption. Supports four output modes (minimal, standard,
+full) with different verbosity levels and an optional token budget that
+automatically drops low-priority cells to fit within context limits.
 """
 from __future__ import annotations
 
@@ -13,14 +13,21 @@ from notebookllm.models import Cell, CellOutput, CellType, NotebookDocument, Out
 class LLMOptimizer:
     """Converts :class:`~notebookllm.models.NotebookDocument` to Agent-optimized text.
 
-    The optimizer produces a clean, structured text format with ``# %% [type]``
-    cell markers, optionally including metadata and outputs. When a token budget
-    is set, it drops the lowest-value cells first to stay within the limit.
+    Produces a clean, structured text format with ``# %% [type]`` cell markers,
+    optionally including metadata and execution outputs. When a token budget is
+    set, intelligently drops lowest-value cells first to stay within the limit.
+
+    Drop priority (highest-value cells kept longest):
+
+    1. **Markdown cells** (explanatory — most valuable for Agent understanding)
+    2. **Code cells with outputs** (executed, have results)
+    3. **Code cells without outputs** (scaffolding — dropped first)
 
     Parameters
     ----------
     mode:
-        Output verbosity mode. Defaults to :attr:`~notebookllm.models.OutputMode.MINIMAL`.
+        Output verbosity mode.
+        Defaults to :attr:`~notebookllm.models.OutputMode.MINIMAL`.
     include_cell_markers:
         Whether to include ``# %% [type]`` markers between cells.
     max_line_length:
@@ -30,8 +37,8 @@ class LLMOptimizer:
         with compressed one-line summaries.
     max_tokens:
         If set, trim the result to fit within this many tokens by dropping
-        lowest-priority cells first (bare code -> code with outputs ->
-        markdown). Token counting uses a simple ``len(text) // 4`` heuristic.
+        lowest-priority cells first. Token counting uses a simple
+        ``len(text) // 4`` heuristic.
     """
 
     def __init__(

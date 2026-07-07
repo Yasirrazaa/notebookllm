@@ -1,11 +1,12 @@
 """Kernel execution engine for MCP server — manages Jupyter kernel lifecycle.
 
 Provides a thread-safe :class:`KernelPool` that manages multiple Jupyter
-kernels (one per session) and executes code cells asynchronously using a
-thread pool for the blocking kernel client API.
+kernels (one per session) and executes code cells asynchronously. Blocking
+kernel client API calls are offloaded to a :class:`ThreadPoolExecutor` so
+the asyncio event loop remains responsive.
 
-Requires the ``jupyter_client`` package (installed with ``notebookllm[all]``
-or ``pip install jupyter_client``).
+Requires ``jupyter_client`` (included via ``notebookllm[all]`` or
+``pip install jupyter_client``).
 """
 import asyncio
 import threading
