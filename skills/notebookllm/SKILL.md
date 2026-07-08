@@ -146,7 +146,7 @@ print(f"{len(doc.cells)} cells, format={doc.source_format}, lang={doc.language}"
 for i, cell in enumerate(doc.cells):
     print(f"  [{i}] {cell.cell_type.value:10s} {cell.source[:60]}")
 
-# ── Convert to Agent text ──────────────────────────
+# ── Convert to optimized text for agents ───────────
 text = doc.to_text()                                        # minimal (default)
 text = doc.to_text(mode=OutputMode.STANDARD)                # + execution counts
 text = doc.to_text(mode=OutputMode.FULL)                    # + outputs

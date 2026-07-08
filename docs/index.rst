@@ -130,7 +130,7 @@ Quick Start
    from notebookllm import load_file
 
    doc = load_file("notebook.ipynb")
-   print(doc.to_text())                            # minimal Agent text
+   print(doc.to_text())                            # minimal optimized text for agents
    print(doc.to_text(mode="token-budget", max_tokens=2000))  # budget mode
 
 ---
@@ -147,7 +147,7 @@ Convert notebook(s) between formats or to Agent-optimized text.
 
 .. code-block:: bash
 
-   # Single file to Agent text (stdout)
+   # Single file to optimized text for agents (stdout)
    notebookllm convert notebook.ipynb
 
    # Single file to a specific format
@@ -256,8 +256,8 @@ Loading and Saving
    json_str = doc.to_json()
    restored = NotebookDocument.from_json(json_str)
 
-Converting to AI Agent Text
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Converting to Optimized Text for Agents
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -556,7 +556,7 @@ Using ``pip`` (manual install):
       }
     }
 
-**VS Code****VS Code** (``.vscode/mcp.json``):
+**VS Code** (``.vscode/mcp.json``):
 
 Using ``uvx``:
 
@@ -588,7 +588,7 @@ Using ``pip``:
       }
     }
 
-**Zed****Zed** (``~/.config/zed/mcp.json``):
+**Zed** (``~/.config/zed/mcp.json``):
 
 Using ``uvx``:
 
@@ -638,7 +638,7 @@ Tools
      - Save session to file
      - Yes
    * - ``to_text``
-     - Convert to Agent text (supports ``max_tokens``)
+     - Convert to optimized text for agents (supports ``max_tokens``)
      - No
    * - ``list_cells``
      - List cells with index, type, preview

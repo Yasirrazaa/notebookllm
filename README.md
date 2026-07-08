@@ -98,7 +98,7 @@ pip install notebookllm[all]       # Everything (CLI + MCP + token)
 Convert notebook(s) between formats or to Agent-optimized text.
 
 ```bash
-# Single file to Agent text (stdout)
+# Single file to optimized text for agents (stdout)
 notebookllm convert notebook.ipynb
 
 # Single file to a specific format
@@ -195,7 +195,7 @@ json_str = doc.to_json()
 restored = NotebookDocument.from_json(json_str)
 ```
 
-### Converting to AI Agent Text
+### Converting to Optimized Text for Agents
 
 ```python
 from notebookllm import OutputMode
