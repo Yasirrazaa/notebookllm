@@ -575,7 +575,7 @@ uv run sphinx-build -b html -E docs docs/_build
 └──────────┘    └───────┬────────┘    └──────┬───────┘
                         │                    │
                  ┌───────┴────────┐    ┌──────┴────────┐
-                 │  Format        │    │  LLM          │
+                 │  Format        │    │  Agent        │
                  │  Detection     │    │  Optimizer    │
                  └────────────────┘    └──────┬────────┘
                                               │

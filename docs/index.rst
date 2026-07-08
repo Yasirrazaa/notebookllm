@@ -746,6 +746,8 @@ API Reference
 .. toctree::
    :maxdepth: 2
 
+   cli
+   agent_integration
    api
 
 Indices and tables

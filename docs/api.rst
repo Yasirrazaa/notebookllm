@@ -101,10 +101,7 @@ notebookllm.converters
 notebookllm.cli.commands
 -------------------------
 
-.. automodule:: notebookllm.cli.commands
-   :members:
-   :undoc-members:
-   :show-inheritance:
+Command-Line Interface commands are documented on the dedicated :doc:`cli` page.
 
 notebookllm.mcp
 ----------------
