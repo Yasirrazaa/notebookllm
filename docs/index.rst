@@ -28,6 +28,14 @@ or MCP server.
 
 ---
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Documentation:
+
+   cli
+   agent_integration
+   api
+
 Why notebookllm?
 ----------------
 
@@ -604,6 +612,20 @@ Using ``pip``:
       }
     }
 
+Tools
+^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 55 10
+
+   * - Tool / Aliases
+     - Description
+     - Destructive
+   * - ``load`` / ``load_notebook``
+     - Load a notebook into a session
+     - No
+   * - ``create`` / ``create_notebook``
      - Create an empty notebook session
      - No
    * - ``list_sessions``
@@ -743,12 +765,7 @@ Development
 API Reference
 -------------
 
-.. toctree::
-   :maxdepth: 2
-
-   cli
-   agent_integration
-   api
+See the complete :doc:`api` for library class and module references.
 
 Indices and tables
 ==================
